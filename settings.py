@@ -1,0 +1,6 @@
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+
+TITLE = "Luna What?"
+
+FPS = 60
