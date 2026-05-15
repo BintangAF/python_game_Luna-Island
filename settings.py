@@ -1,6 +1,14 @@
+IMAGE_PATH = "graphics/"
+
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-TITLE = "Luna What?"
+TITLE = "Luna Apa nih?"
 
 FPS = 60
+
+TILE_SIZE = 64
+
+PLAYER_SIZE = [32, 32]
+PLAYER_SPEED = 5
+PLAYER_IMAGE = IMAGE_PATH + "player.png"
