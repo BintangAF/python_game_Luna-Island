@@ -6,6 +6,7 @@ class Player(Character):
     def __init__(self, x, y, name, hp, image_path, size):
         super().__init__(x, y, name, hp, image_path, size)
         self.speed = PLAYER_SPEED
+        self.interact_box = pygame.Rect(self.rect.x, self.rect.y, INTERACT_BOX_SIZE, INTERACT_BOX_SIZE)
         
     def move(self, walls):
         dx = 0
@@ -45,8 +46,12 @@ class Player(Character):
                     self.rect.top = wall.bottom
                 break
 
+    def update_interact_box(self):
+        self.interact_box.center = self.rect.center
+
     def update(self, walls):
         self.move(walls)
+        self.update_interact_box()
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
