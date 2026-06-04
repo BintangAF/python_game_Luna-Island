@@ -3,11 +3,12 @@
 </h1>
 
 <div align="center">
+<h2>Nama Project: Game pixel berjudul Monster Island</h2>
 
 ![Kelompok](https://img.shields.io/badge/Kelompok-2-1E3A8A?style=for-the-badge)
 ![Kelas](https://img.shields.io/badge/Kelas-TIC%202025-1E3A8A?style=for-the-badge)
 
-**Nama Project:** Game pixel berjudul Monster Islan
+
 
 </div>
 
