@@ -18,7 +18,10 @@ from crafting.crafting_manager import CraftingManager
 from world.game_clock import GameClock
 from world.animated_water import AnimatedWater
 from world.weather_manager import WeatherManager
-
+from inventories.inventory import Inventory
+from items.seed_item import SeedItem
+from items.food_item import FoodItem
+from items.material_item import MaterialItem
 from asset_registry import AssetRegistry
 from world_builders import (
     TileBuilder,
@@ -62,7 +65,15 @@ class Level:
         self._door_sound = self._load_door_sound()
 
         self.money = 120
-        self.inventory: dict[str, int] = {}
+        self.inventory = Inventory(max_slots=20)
+        self.inventory.money = 120
+        
+        wood_item = MaterialItem("Kayu", 8, 4, "assets/images/items/wood.png")
+        self.inventory.add_item(wood_item, 5)
+        
+        stone_item = MaterialItem("Batu", 6, 3, "assets/images/items/stone.png")
+        self.inventory.add_item(stone_item, 3) 
+        
         self.shop_npcs = []
         self.well_gateway = None
         self.cave_game = CaveAdventure()
