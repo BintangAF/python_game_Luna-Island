@@ -56,7 +56,6 @@ secara acak di salahsatu gua.
 ---
 
 
-</div>
 
 
 ## ᯓ★ Cara Menjalankan Program
@@ -74,3 +73,4 @@ secara acak di salahsatu gua.
 
 
 ---
+## ⚔️ Screenshot tampilan program
