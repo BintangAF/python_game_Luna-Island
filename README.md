@@ -1,5 +1,5 @@
 <h1 align="center">
-Projek UAS  Pemrograman Berorientasi Objek 🕹️⋆˚࿔
+ 🕹️⋆˚࿔ Projek UAS  Pemrograman Berorientasi Objek
 </h1>
 
 <div align="center">
@@ -53,9 +53,8 @@ secara acak di salahsatu gua.
 - Battle mode
 - Mining
 - Iventory
+  
 ---
-
-
 
 
 ## ᯓ★ Cara Menjalankan Program
@@ -66,11 +65,10 @@ secara acak di salahsatu gua.
 6. Jalankan main kode di teks editor anda
 
 
-
 ---
 
 ## Penjelasan implementasi OOP
 
-
 ---
 ## ⚔️ Screenshot tampilan program
+
