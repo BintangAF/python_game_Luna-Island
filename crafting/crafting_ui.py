@@ -60,7 +60,7 @@ def draw_crafting_menu(self):
 
         can_craft, _ = self.crafting.can_craft(self.inventory, item)
         status_color = (36, 92, 35) if can_craft else (135, 45, 35)
-        status_text = "✓ Bisa dibuat" if can_craft else " Bahan kurang"
+        status_text = " Bisa dibuat" if can_craft else " Bahan kurang"
         status = font.render(status_text, True, status_color)
         panel.blit(status, (row_rect.right - status.get_width() - 12, row_rect.y + 20))
 
@@ -80,7 +80,7 @@ def draw_crafting_menu(self):
             panel.blit(info_text, (info_x + 12, info_y + 12 + i * 22))
 
     footer1 = font.render(
-        "↑/↓ : Pilih item | ENTER/SPACE : Craft | E/Q : Tutup", True, (78, 48, 23)
+        "Up/Down : Pilih item | ENTER/SPACE : Craft | E/Q : Tutup", True, (78, 48, 23)
     )
     footer2 = font.render(
         "Tips: Kumpulkan bahan dari alam untuk membuat item baru!", True, (100, 70, 40)

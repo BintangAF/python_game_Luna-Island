@@ -1,6 +1,6 @@
-# npc/__init__.py
 from .shop_npc import ShopNPC
 from .crafter_npc import CrafterNPC
-from .base_npc import BaseNPC
+from .quest_npc import QuestNPC
 
-__all__ = ['ShopNPC', 'CrafterNPC', 'BaseNPC']
+
+__all__ = ['ShopNPC', 'CrafterNPC','QuestNPC']
