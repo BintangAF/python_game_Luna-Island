@@ -20,15 +20,17 @@ class GameScene:
             if event.type == pygame.QUIT:
                 self.app.running = False
 
-            if event.type == pygame.KEYDOWN:
-
-                if event.key == pygame.K_ESCAPE:
-                    if (
-                        not getattr(self.level, "shop_open", False)
-                        and getattr(self.level, "mode", "outside") != "cave"
-                    ):
-                        self.back_to_menu()
-                        return
+            # if event.type == pygame.KEYDOWN:
+            #     if event.key == pygame.K_ESCAPE:
+            #         # Only go back to menu if pause menu is not open
+            #         # and not in other menus
+            #         if (
+            #             not getattr(self.level.pause_menu, "is_open", False)
+            #             and not getattr(self.level, "shop_open", False)
+            #             and getattr(self.level, "mode", "outside") != "cave"
+            #         ):
+            #             self.back_to_menu()
+            #             return
 
             self.level.handle_event(event)
 

@@ -38,6 +38,7 @@ from ui_panels import (
     PlayerStatusPanel,
     ProximityPrompt,
     BattleUnlockPanel,
+    PauseMenu,
 )
 
 from camera_group import CameraGroup
@@ -93,6 +94,7 @@ class Level:
         self.status_panel = PlayerStatusPanel(self)
         self.proximity_prompt = ProximityPrompt(self)
         self.battle_unlock_panel = BattleUnlockPanel(self)
+        self.pause_menu = PauseMenu(self)
         self.inventory_bar.open()
 
         self._ui_panels = [
@@ -103,6 +105,7 @@ class Level:
             self.proximity_prompt,
             self.battle_unlock_panel,
             self.inventory_menu,
+            self.pause_menu,
         ]
 
         self.clock_ui.season_mode = self.season_mode
@@ -348,6 +351,13 @@ class Level:
             elif not (self.shop_panel.is_open or self.crafting_panel.is_open):
                 self._freeze_player()
                 self.inventory_menu.open()
+        elif key == pygame.K_ESCAPE:
+            if self.pause_menu.is_open:
+                self.pause_menu.close()
+                self._restore_player_controls()
+            elif not (self.shop_panel.is_open or self.crafting_panel.is_open or self.inventory_menu.is_open):
+                self._freeze_player()
+                self.pause_menu.open()
         elif pygame.K_0 <= key <= pygame.K_9:
             if not (
                 self.inventory_menu.is_open
@@ -799,3 +809,10 @@ class Level:
             return surf
 
         return [draw_frame("closed"), draw_frame("mid"), draw_frame("open")]
+
+    def go_back_to_menu(self) -> None:
+        """Kembali ke menu utama dari pause menu."""
+        from scenes.menu_scene import MenuScene
+        self.app.audio.stop_music()
+        self.app.audio.play_menu_music()
+        self.app.change_scene(MenuScene(self.app))

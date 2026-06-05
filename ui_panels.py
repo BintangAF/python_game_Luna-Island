@@ -1366,3 +1366,163 @@ class QuestPanel(BaseUIPanel):
     def update(self, dt: float) -> None:
         """Update method - required by BaseUIPanel"""
         pass
+
+
+class PauseMenu(BaseUIPanel):
+    """Menu pause - muncul saat tekan ESC, dengan tombol resume, main menu, dan exit."""
+
+    _BUTTON_WIDTH = 200
+    _BUTTON_HEIGHT = 50
+    _BUTTON_GAP = 20
+    _W = 400
+    _H = 300
+
+    def __init__(self, level: "Level") -> None:
+        super().__init__(level)
+        self.selected_button = 0  # 0: Resume, 1: Main Menu, 2: Exit
+        self.buttons = ["Resume", "Main Menu", "Exit Game"]
+        self.hovered_button = None
+
+    def open(self, *args, **kwargs) -> None:
+        self._open = True
+        self.selected_button = 0
+        self.hovered_button = None
+
+    def close(self) -> None:
+        self._open = False
+        self.selected_button = 0
+        self.hovered_button = None
+
+    def handle_event(self, event: pygame.Event) -> bool:
+        if not self._open:
+            return False
+
+        if event.type == pygame.KEYDOWN:
+            # Navigate dengan arrow keys atau WASD
+            if event.key in (pygame.K_UP, pygame.K_w):
+                self.selected_button = (self.selected_button - 1) % len(self.buttons)
+                return True
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
+                self.selected_button = (self.selected_button + 1) % len(self.buttons)
+                return True
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                self._on_button_pressed(self.selected_button)
+                return True
+            elif event.key == pygame.K_ESCAPE:
+                # ESC untuk resume
+                self._on_button_pressed(0)
+                return True
+
+        elif event.type == pygame.MOUSEMOTION:
+            # Detect hover
+            self.hovered_button = self._get_button_at_pos(event.pos)
+
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Left click
+                button_idx = self._get_button_at_pos(event.pos)
+                if button_idx is not None:
+                    self._on_button_pressed(button_idx)
+                    return True
+
+        return False
+
+    def draw(self, surface: pygame.Surface) -> None:
+        if not self._open:
+            return
+
+        # Background gelap
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        surface.blit(overlay, (0, 0))
+
+        # Panel
+        x = (SCREEN_WIDTH - self._W) // 2
+        y = (SCREEN_HEIGHT - self._H) // 2
+        self._draw_shadow(surface, x, y, self._W, self._H)
+        panel = self._make_panel_surface(self._W, self._H)
+
+        # Title
+        title = self._font_big.render("PAUSED", True, (68, 39, 19))
+        title_x = (self._W - title.get_width()) // 2
+        panel.blit(title, (title_x, 30))
+
+        # Buttons
+        button_y_start = 100
+        for i, button_text in enumerate(self.buttons):
+            self._draw_button(
+                panel,
+                button_text,
+                i,
+                button_y_start + i * (self._BUTTON_HEIGHT + self._BUTTON_GAP),
+            )
+
+        surface.blit(panel, (x, y))
+
+    def _draw_button(
+        self,
+        panel: pygame.Surface,
+        text: str,
+        index: int,
+        y: int,
+    ) -> None:
+        """Draw single button dengan highlight jika selected atau hovered."""
+        is_selected = index == self.selected_button
+        is_hovered = index == self.hovered_button
+
+        x = (self._W - self._BUTTON_WIDTH) // 2
+
+        # Button background
+        button_rect = pygame.Rect(x, y, self._BUTTON_WIDTH, self._BUTTON_HEIGHT)
+
+        if is_selected or is_hovered:
+            # Highlight color
+            bg_color = (255, 200, 100)
+            border_color = (200, 120, 30)
+            text_color = (68, 39, 19)
+        else:
+            bg_color = (200, 170, 120)
+            border_color = (120, 70, 30)
+            text_color = (68, 39, 19)
+
+        pygame.draw.rect(panel, bg_color, button_rect, border_radius=8)
+        pygame.draw.rect(panel, border_color, button_rect, 3, border_radius=8)
+
+        # Button text
+        font = self._font_small
+        text_surf = font.render(text, True, text_color)
+        text_x = x + (self._BUTTON_WIDTH - text_surf.get_width()) // 2
+        text_y = y + (self._BUTTON_HEIGHT - text_surf.get_height()) // 2
+        panel.blit(text_surf, (text_x, text_y))
+
+    def _get_button_at_pos(self, mouse_pos: tuple) -> int | None:
+        """Get button index at mouse position, atau None jika di luar."""
+        x = (SCREEN_WIDTH - self._W) // 2
+        y = (SCREEN_HEIGHT - self._H) // 2
+
+        for i in range(len(self.buttons)):
+            button_y = y + 100 + i * (self._BUTTON_HEIGHT + self._BUTTON_GAP)
+            button_x = x + (self._W - self._BUTTON_WIDTH) // 2
+            button_rect = pygame.Rect(
+                button_x, button_y, self._BUTTON_WIDTH, self._BUTTON_HEIGHT
+            )
+            if button_rect.collidepoint(mouse_pos):
+                return i
+        return None
+
+    def _on_button_pressed(self, button_index: int) -> None:
+        """Handle button press."""
+        if button_index == 0:
+            # Resume
+            self.close()
+        elif button_index == 1:
+            # Main Menu
+            self._level.go_back_to_menu()
+            self.close()
+        elif button_index == 2:
+            # Exit Game
+            self._level.app.running = False
+            self.close()
+
+    def update(self, dt: float) -> None:
+        """Update method - required by BaseUIPanel"""
+        pass
