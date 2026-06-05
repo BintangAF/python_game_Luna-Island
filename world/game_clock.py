@@ -27,11 +27,19 @@ class GameClock:
         self.minute_seconds = self.minute_seconds_fast if self.time_speed_fast else self.minute_seconds_normal
 
     def update(self, dt):
+        """Advance the clock.
+
+        Returns a tuple: (minutes_passed, day_changed)
+        minutes_passed: number of in-game minutes advanced since last call (in increments of 5)
+        day_changed: True if the day rolled over
+        """
+        minutes_passed = 0
         day_changed = False
         self._accum += dt
         while self._accum >= self.minute_seconds:
             self._accum -= self.minute_seconds
             self.minute += 5
+            minutes_passed += 5
             if self.minute >= 60:
                 self.minute = 0
                 self.hour += 1
@@ -41,7 +49,7 @@ class GameClock:
                 self.day += 1
                 self.is_rainy_day = self.weather_roll.random() < 0.35
                 day_changed = True
-        return day_changed
+        return minutes_passed, day_changed
 
     def phase(self):
         h = self.hour

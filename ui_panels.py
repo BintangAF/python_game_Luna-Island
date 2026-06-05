@@ -6,6 +6,8 @@ import pygame
 
 from base import BaseUIPanel
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT
+from seed import Seed
+from support import get_path, load_single
 
 if TYPE_CHECKING:
     from level import Level
@@ -189,12 +191,25 @@ class ShopPanel(BaseUIPanel):
             self._show_msg(f"Koin tidak cukup untuk membeli {item['name']}.")
             return
         self._level.money -= item["price"]
-        self._level.inventory[item["name"]] = (
-            self._level.inventory.get(item["name"], 0) + 1
-        )
+        seed = self._create_seed_from_shop_item(item)
+        if seed:
+            self._level.inventory.add_item(seed)
+        else:
+            self._level.inventory.add_item(item["name"])
         if "stock" in item:
             item["stock"] -= 1
         self._show_msg(f"{item['name']} berhasil dibeli.")
+
+    def _create_seed_from_shop_item(self, item: dict) -> Seed | None:
+        name = item.get("name")
+        image_path = item.get("image")
+        if not name or not image_path:
+            return None
+        if not (name.lower().startswith("biji ") or "seed" in image_path.lower()):
+            return None
+
+        surf = load_single(get_path(image_path), (32, 32))
+        return Seed(name=name, description=item.get("desc", ""), image=surf or image_path)
 
     def _show_msg(self, text: str) -> None:
         self.message = text
@@ -359,6 +374,11 @@ class InventoryBar(BaseUIPanel):
     _GAP = 6
     _PAD = 8
 
+    def __init__(self, level: "Level") -> None:
+        super().__init__(level)
+        self._bar_slots: list[str | None] = [None] * self._SLOTS
+        self.active_slot: int | None = None
+
     def open(self, *args, **kwargs) -> None:
         self._open = True
 
@@ -368,7 +388,30 @@ class InventoryBar(BaseUIPanel):
     def handle_event(self, event: pygame.Event) -> bool:
         return False
 
+    def assign_slot(self, slot: int, item_name: str) -> None:
+        if 0 <= slot < self._SLOTS:
+            self._bar_slots[slot] = item_name
+
+    def set_active_slot(self, slot: int) -> None:
+        if 0 <= slot < self._SLOTS and self._bar_slots[slot] is not None:
+            self.active_slot = slot
+        else:
+            self.active_slot = None
+
+    def get_active_item(self) -> str | None:
+        if self.active_slot is None:
+            return None
+        return self._bar_slots[self.active_slot]
+
+    def _sync_slots(self) -> None:
+        for i, item_name in enumerate(self._bar_slots):
+            if item_name is not None and self._level.inventory.get(item_name, 0) <= 0:
+                self._bar_slots[i] = None
+                if self.active_slot == i:
+                    self.active_slot = None
+
     def draw(self, surface: pygame.Surface) -> None:
+        self._sync_slots()
         ss, gs, pad = self._SLOT_SIZE, self._GAP, self._PAD
         fw = self._SLOTS * ss + (self._SLOTS - 1) * gs + pad * 2
         fh = ss + pad * 2
@@ -387,7 +430,6 @@ class InventoryBar(BaseUIPanel):
             border_radius=8,
         )
 
-        inv_items = list(self._level.inventory.items())
         font = self._font_small
 
         for i in range(self._SLOTS):
@@ -395,20 +437,48 @@ class InventoryBar(BaseUIPanel):
             sy = pad
             sr = pygame.Rect(sx, sy, ss, ss)
             ir = pygame.Rect(sx + 3, sy + 3, ss - 6, ss - 6)
-            pygame.draw.rect(panel, (170, 115, 58), sr, border_radius=6)
+
+            if self.active_slot == i:
+                pygame.draw.rect(panel, (0, 0, 0), sr, 3, border_radius=6)
+            else:
+                pygame.draw.rect(panel, (170, 115, 58), sr, border_radius=6)
+
             pygame.draw.rect(panel, (113, 70, 24), sr, 2, border_radius=6)
             pygame.draw.rect(panel, (241, 205, 139), ir, border_radius=5)
             pygame.draw.rect(panel, (199, 151, 86), ir, 1, border_radius=5)
 
-            if i < len(inv_items):
-                name, count = inv_items[i]
-                short = name[:4]
+            label = font.render(str((i + 1) % 10), True, (107, 65, 30))
+            panel.blit(label, (sx + 4, sy + 4))
+
+            item_name = self._bar_slots[i]
+            if item_name:
+                count = self._level.inventory.get(item_name, 0)
+                short = item_name[:4]
                 nt = font.render(short, True, (60, 39, 24))
                 ct = font.render(str(count), True, (60, 39, 24))
                 panel.blit(nt, (sx + (ss - nt.get_width()) // 2, sy + 7))
                 panel.blit(
                     ct, (sx + ss - ct.get_width() - 6, sy + ss - ct.get_height() - 3)
                 )
+
+        # draw tool box to the left of the inventory bar
+        tool_ss = ss
+        tool_gs = gs
+        tool_x = x - tool_ss - tool_gs - 8
+        tool_y = y
+        # background
+        trect = pygame.Rect(tool_x, tool_y, tool_ss, tool_ss)
+        pygame.draw.rect(surface, (239, 195, 118, 240), trect, border_radius=8)
+        pygame.draw.rect(surface, (122, 72, 27), trect, 3, border_radius=8)
+        # tool image and name
+        if getattr(self._level, 'tools', None):
+            tool = self._level.tools[self._level.current_tool_index]
+            if getattr(tool, 'image', None):
+                try:
+                    img = pygame.transform.smoothscale(tool.image, (tool_ss - 8, tool_ss - 8))
+                    surface.blit(img, (tool_x + 4, tool_y + 4))
+                except Exception:
+                    pass
 
         surface.blit(panel, (x, y))
 
@@ -424,6 +494,141 @@ class InventoryBar(BaseUIPanel):
     def update(self, dt: float) -> None:
         pass
 
+class InventoryMenu(BaseUIPanel):
+    """Menu inventaris penuh dengan detail item. Modal, bisa dibuka/tutup."""
+
+    _VISIBLE = 6
+    _W, _H = 520, 520
+
+    def __init__(self, level: "Level") -> None:
+        super().__init__(level)
+        self.selected_index = 0
+        self.scroll_offset = 0
+        self.message = ""
+        self.message_timer = 0.0
+
+    def open(self, *args, **kwargs) -> None:
+        self._open = True
+        self.selected_index = 0
+        self.scroll_offset = 0
+        self.message = "Menu inventaris dibuka"
+        self.message_timer = 1.6
+
+    def close(self) -> None:
+        self._open = False
+        self.selected_index = 0
+        self.scroll_offset = 0
+        self.message = ""
+        self.message_timer = 0.0
+
+    def handle_event(self, event: pygame.Event) -> bool:
+        if not self._open:
+            return False
+        if event.type != pygame.KEYDOWN:
+            return False
+
+        key = event.key
+        if key in (pygame.K_e, pygame.K_q, pygame.K_TAB):
+            self.close()
+            return True
+
+        items = list(self._level.inventory.inventory.items())
+        if not items:
+            return True
+
+        if key in (pygame.K_w, pygame.K_UP):
+            self.selected_index = max(0, self.selected_index - 1)
+            if self.selected_index < self.scroll_offset:
+                self.scroll_offset = self.selected_index
+        elif key in (pygame.K_s, pygame.K_DOWN):
+            self.selected_index = min(len(items) - 1, self.selected_index + 1)
+            if self.selected_index >= self.scroll_offset + self._VISIBLE:
+                self.scroll_offset = self.selected_index - self._VISIBLE + 1
+        elif pygame.K_0 <= key <= pygame.K_9:
+            if self.selected_index < len(items):
+                slot = 9 if key == pygame.K_0 else key - pygame.K_1
+                item_name, _ = items[self.selected_index]
+                self._level.inventory_bar.assign_slot(slot, item_name)
+                self._show_msg(f"{item_name} dipasang ke bar slot {slot + 1}")
+        elif key == pygame.K_r:
+            # hapus item
+            if self.selected_index < len(items):
+                item_name, _ = items[self.selected_index]
+                self._level.inventory.remove_item(item_name)
+                self._show_msg(f"{item_name} dihapus dari inventaris")
+            
+        return True
+
+    def draw(self, surface: pygame.Surface) -> None:
+        if not self._open:
+            return
+
+        w, h = self._W, self._H
+        x = (SCREEN_WIDTH - w) // 2
+        y = (SCREEN_HEIGHT - h) // 2
+
+        self._draw_shadow(surface, x, y, w, h)
+        panel = self._make_panel_surface(w, h)
+
+        title = self._font_big.render("Inventory", True, (68, 39, 19))
+        panel.blit(title, (24, 20))
+
+        items = list(self._level.inventory.inventory.items())
+        item_y_start = 78
+        for i in range(self._VISIBLE):
+            idx = self.scroll_offset + i
+            if idx >= len(items):
+                break
+            name, count = items[idx]
+            row_y = item_y_start + i * 56
+            row_rect = pygame.Rect(24, row_y, w - 48, 50)
+            bg = (255, 233, 173) if idx == self.selected_index else (245, 220, 160)
+            pygame.draw.rect(panel, bg, row_rect, border_radius=8)
+            pygame.draw.rect(panel, (154, 96, 44), row_rect, 2, border_radius=8)
+
+            panel.blit(
+                self._font_small.render(f"{name}", True, (56, 34, 18)),
+                (row_rect.x + 12, row_rect.y + 8),
+            )
+            panel.blit(
+                self._font_small.render(f"x{count}", True, (91, 66, 43)),
+                (row_rect.right - 60, row_rect.y + 8),
+            )
+
+            assigned_slot = self._level.inventory_bar._bar_slots.index(name) + 1 if name in self._level.inventory_bar._bar_slots else None
+            if assigned_slot is not None:
+                assign_txt = self._font_small.render(
+                    f"Slot {assigned_slot}", True, (36, 92, 35)
+                )
+                panel.blit(assign_txt, (row_rect.right - assign_txt.get_width() - 12, row_rect.y + 28))
+
+        if not items:
+            empty_txt = self._font_small.render(
+                "Inventaris kosong.", True, (110, 60, 30)
+            )
+            panel.blit(empty_txt, (24, item_y_start))
+
+        panel.blit(
+            self._font_small.render(
+                "W/S: Pilih | R: Buang | 0-9: Pasang ke slot bar | TAB: Tutup",
+                True,
+                (78, 48, 23),
+            ),
+            (24, h - 62),
+        )
+
+        if self.message and self.message_timer > 0:
+            panel.blit(self._font_small.render(self.message, True, (36, 92, 35)), (24, h - 88))
+
+        surface.blit(panel, (x, y))
+
+    def update(self, dt: float) -> None:
+        if self.message_timer > 0:
+            self.message_timer = max(0.0, self.message_timer - dt)
+
+    def _show_msg(self, text: str) -> None:
+        self.message = text
+        self.message_timer = 1.8
 
 class PlayerStatusPanel(BaseUIPanel):
     """Panel foto + bar energi karakter."""
@@ -559,6 +764,58 @@ class ProximityPrompt(BaseUIPanel):
         return None
 
 
+class BattleUnlockPanel(BaseUIPanel):
+    """Panel sederhana untuk menunjukan unlock battle mode dari tanaman."""
+
+    def __init__(self, level: "Level") -> None:
+        super().__init__(level)
+        self.plant_type: str | None = None
+        self._W, self._H = 440, 160
+
+    def open(self, plant_type: str) -> None:
+        self._open = True
+        self.plant_type = plant_type
+
+    def close(self) -> None:
+        self._open = False
+        self.plant_type = None
+
+    def handle_event(self, event: pygame.Event) -> bool:
+        if not self._open:
+            return False
+        if event.type == pygame.KEYDOWN:
+            if event.key in (pygame.K_e, pygame.K_q, pygame.K_ESCAPE):
+                self.close()
+            return True
+        return True
+
+    def draw(self, surface: pygame.Surface) -> None:
+        if not self._open or not self.plant_type:
+            return
+
+        x = (SCREEN_WIDTH - self._W) // 2
+        y = (SCREEN_HEIGHT - self._H) // 2
+        self._draw_shadow(surface, x, y, self._W, self._H)
+        panel = self._make_panel_surface(self._W, self._H)
+
+        title = self._font_big.render("Battle Mode Terbuka!", True, (68, 39, 19))
+        message = self._font_small.render(
+            f"Tanaman {self.plant_type} berhasil terbuka untuk battle mode.",
+            True,
+            (36, 92, 35),
+        )
+        hint = self._font_small.render("Tekan E atau Q untuk menutup.", True, (78, 48, 23))
+
+        panel.blit(title, (24, 24))
+        panel.blit(message, (24, 68))
+        panel.blit(hint, (24, 112))
+
+        surface.blit(panel, (x, y))
+
+    def update(self, dt: float) -> None:
+        pass
+
+
 class ShopPanel(BaseUIPanel):
     """Panel pembelian DAN penjualan item"""
 
@@ -655,7 +912,7 @@ class ShopPanel(BaseUIPanel):
         else:
 
             inventory_items = []
-            for item_name, count in self._level.inventory.items():
+            for item_name, count in self._level.inventory.inventory.items():
                 buy_price = (
                     self.active_npc.get_buy_price(item_name) if self.active_npc else 0
                 )

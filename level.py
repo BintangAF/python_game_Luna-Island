@@ -14,6 +14,7 @@ from musim import MonthSeasonManager
 from MonthNameUI import MonthNameUI
 from cave_link.adventure import CaveAdventure
 from crafting.crafting_manager import CraftingManager
+from inventory import Inventory
 
 from world.game_clock import GameClock
 from world.animated_water import AnimatedWater
@@ -23,6 +24,7 @@ from asset_registry import AssetRegistry
 from world_builders import (
     TileBuilder,
     HouseBuilder,
+    FarmBuilder,
     FenceBuilder,
     TreeBuilder,
     DetailBuilder,
@@ -32,11 +34,15 @@ from ui_panels import (
     ShopPanel,
     CraftingPanel,
     InventoryBar,
+    InventoryMenu,
     PlayerStatusPanel,
     ProximityPrompt,
+    BattleUnlockPanel,
 )
 
 from camera_group import CameraGroup
+from equipment.hoe import Hoe
+from equipment.wateringCan import WateringCan
 class Level:
 
     def __init__(self, app) -> None:
@@ -62,7 +68,7 @@ class Level:
         self._door_sound = self._load_door_sound()
 
         self.money = 120
-        self.inventory: dict[str, int] = {}
+        self.inventory = Inventory()
         self.shop_npcs = []
         self.well_gateway = None
         self.cave_game = CaveAdventure()
@@ -71,12 +77,22 @@ class Level:
         self.pvz_active = False
 
         self.crafting = CraftingManager()
+        self.farm = None
+
+        # tools (toggle with C, use with SPACE)
+        try:
+            self.tools = [Hoe(), WateringCan()]
+        except Exception:
+            self.tools = []
+        self.current_tool_index = 0
 
         self.shop_panel = ShopPanel(self)
         self.crafting_panel = CraftingPanel(self)
         self.inventory_bar = InventoryBar(self)
+        self.inventory_menu = InventoryMenu(self)
         self.status_panel = PlayerStatusPanel(self)
         self.proximity_prompt = ProximityPrompt(self)
+        self.battle_unlock_panel = BattleUnlockPanel(self)
         self.inventory_bar.open()
 
         self._ui_panels = [
@@ -85,6 +101,8 @@ class Level:
             self.inventory_bar,
             self.status_panel,
             self.proximity_prompt,
+            self.battle_unlock_panel,
+            self.inventory_menu,
         ]
 
         self.clock_ui.season_mode = self.season_mode
@@ -104,6 +122,7 @@ class Level:
         builders = [
             TileBuilder(self),
             HouseBuilder(self),
+            FarmBuilder(self),
             FenceBuilder(self),
             TreeBuilder(self),
             DetailBuilder(self),
@@ -261,7 +280,8 @@ class Level:
             if self.exit_anim_elapsed >= 0.24:
                 self._exit_house()
         else:
-            self.interior_sprites.update(dt)
+            if not self.inventory_menu.is_open:
+                self.interior_sprites.update(dt)
             self.interior_door_sprite.set_frame(0)
         self.interior_sprites.custom_draw(self.interior_player)
 
@@ -275,7 +295,11 @@ class Level:
         elif self.season_mode == "autumn":
             pass
 
-        if not self.shop_panel.is_open:
+        if not (
+            self.shop_panel.is_open
+            or self.crafting_panel.is_open
+            or self.inventory_menu.is_open
+        ):
             self.all_sprites.update(dt)
 
     def handle_event(self, event: pygame.Event) -> None:
@@ -285,14 +309,22 @@ class Level:
                 self._return_from_cave()
             return
 
-        menu_active = self.shop_panel.is_open or self.crafting_panel.is_open
+        menu_active = (
+            self.shop_panel.is_open
+            or self.crafting_panel.is_open
+            or self.inventory_menu.is_open
+        )
         if hasattr(self, "player"):
             self.player.menu_active = menu_active
 
         for panel in self._ui_panels:
             if panel.handle_event(event):
-
-                if not menu_active:
+                after_menu_active = (
+                    self.shop_panel.is_open
+                    or self.crafting_panel.is_open
+                    or self.inventory_menu.is_open
+                )
+                if not after_menu_active:
                     self._restore_player_controls()
                 return
 
@@ -309,18 +341,65 @@ class Level:
             self.clock_ui.toggle_speed()
         elif key == pygame.K_l:
             self.advance_month()
+        elif key == pygame.K_TAB:
+            if self.inventory_menu.is_open:
+                self.inventory_menu.close()
+                self._restore_player_controls()
+            elif not (self.shop_panel.is_open or self.crafting_panel.is_open):
+                self._freeze_player()
+                self.inventory_menu.open()
+        elif pygame.K_0 <= key <= pygame.K_9:
+            if not (
+                self.inventory_menu.is_open
+                or self.shop_panel.is_open
+                or self.crafting_panel.is_open
+            ):
+                slot = 9 if key == pygame.K_0 else key - pygame.K_1
+                self.inventory_bar.set_active_slot(slot)
         elif key == pygame.K_e:
             self._interact()
+        elif key == pygame.K_c:
+            # cycle current tool
+            if getattr(self, 'tools', None):
+                self.current_tool_index = (self.current_tool_index + 1) % len(self.tools)
+        elif key == pygame.K_SPACE:
+            # use current tool
+            self._use_current_tool()
 
     def _interact(self) -> None:
         if self.mode == "outside":
             npc = self._get_nearby_shop_npc()
             if npc:
                 self._open_for_npc(npc)
+            elif self.farm and self.farm.interact():
+                pass
             elif self._near_well_gateway():
                 self._enter_cave()
             elif self.house_door_rect.colliderect(self.player.hitbox):
                 self._enter_house()
+
+    def _use_current_tool(self) -> None:
+        if not getattr(self, 'tools', None):
+            return
+        tool = self.tools[self.current_tool_index]
+        try:
+            tool.use(self.player)
+        except Exception:
+            pass
+
+        # if near farm plot, apply tool effect
+        if getattr(self, 'farm', None):
+            # use farm manager target logic
+            tile = self.farm._get_target_tile()
+            if tile is None:
+                return
+            name = getattr(tool, 'name', '')
+            if name == 'Hoe' and tile.state == self.farm.STATE_UNTILLED:
+                tile.set_state(self.farm.STATE_HOED)
+            elif name in ('Watering Can', 'WateringCan') and tile.state == self.farm.STATE_PLANTED:
+                tile.watered = True
+                tile.growth_minutes = 0
+                tile.set_state(self.farm.STATE_WATERED)
         elif self.mode == "inside":
             if (
                 self.exit_interact_rect.colliderect(self.interior_player.hitbox)
@@ -562,10 +641,15 @@ class Level:
             self.player.menu_active = False
 
     def _update_time(self, dt: float) -> None:
-        day_changed = self.clock_ui.update(dt)
+        minutes_passed, day_changed = self.clock_ui.update(dt)
         if day_changed:
             self.month_system.advance_day()
             self.clock_ui.day = self.month_system.day
+
+        # let farm manager process in-game minute ticks (growth/decay)
+        if minutes_passed and getattr(self, 'farm', None):
+            # minutes_passed is in increments of 5, convert to total minutes
+            self.farm.update(minutes_passed)
             self._sync_season_from_month()
         self.clock_ui.season_mode = self.season_mode
 

@@ -8,6 +8,8 @@ from base import BaseWorldBuilder
 from settings import TILE_SIZE, LAYERS, MAP_W, MAP_H
 from sprites import Generic, CollideTile
 from maps.build_map import T_GRASS, T_FIELD, T_PATH, T_YARD, T_WATER, T_SAND
+from plant import Plant
+from seed import Seed
 from world.animated_water import AnimatedWater
 from support import get_path, load_single
 
@@ -63,7 +65,6 @@ class TileBuilder(BaseWorldBuilder):
                     surf = self._choose_tile(tile_id, tx, ty)
                     Generic(pos, surf, self._all_sprites, z=LAYERS["ground"])
 
-    
     def _choose_tile(self, tile_id: int, tx: int, ty: int) -> pygame.Surface:
         sa = self._level.assets.for_season(self._season_mode)
 
@@ -76,17 +77,481 @@ class TileBuilder(BaseWorldBuilder):
         }
         lst = pool_map.get(tile_id)
         if not lst:
-            
             lst = (sa.grass_surfs or sa.sand_surfs or sa.path_surfs
                    or sa.yard_surfs or sa.field_surfs)
         if not lst:
             raise RuntimeError("Tile asset tidak ditemukan. Cek folder graphics/tiles.")
         return _stable_choice(lst, "tile", tile_id, tx, ty)
 
+
+class FarmPlotTile(pygame.sprite.Sprite):
+    def __init__(self, pos, state_surfs, groups):
+        super().__init__(groups)
+        self.state_surfs = state_surfs
+        self.state = 0
+        self.image = self.state_surfs[0]
+        self.rect = self.image.get_rect(topleft=pos)
+        self.z = LAYERS["ground"]
+        self.hitbox = self.rect.copy()
+
+    def set_state(self, state: int) -> None:
+        self.state = max(0, min(state, len(self.state_surfs) - 1))
+        surf = self.state_surfs[self.state]
+        if surf is not None:
+            self.image = surf
+
+
+class FarmPlotManager:
+    """Kelola ladang khusus di bawah rumah pemain."""
+
+    PLOT_COORDS = [
+        (18, 28), (20, 28), (22, 28), (24, 28),
+        (18, 30), (20, 30), (22, 30), (24, 30),
+        (18, 32), (20, 32), (22, 32), (24, 32),
+    ]
+    STATE_UNTILLED = 0
+    STATE_HOED = 1
+    STATE_PLANTED = 2
+    STATE_WATERED = 3
+    STATE_GROWN = 4
+
+    def __init__(self, level: "Level") -> None:
+        self._level = level
+        self._tiles: dict[tuple[int, int], FarmPlotTile] = {}
+        self._state_surfs = self._load_state_surfaces()
+        self._battle_unlocked_types: set[str] = set()
+
+    def _load_state_surfaces(self) -> list[pygame.Surface]:
+        untilled = load_single(get_path("graphics", "tiles", "FieldsTile_38.png"), (TILE_SIZE, TILE_SIZE))
+        hoed = load_single(get_path("graphics", "tiles", "FieldsTile_01.png"), (TILE_SIZE, TILE_SIZE))
+        seeded = load_single(get_path("graphics", "tiles", "seeded_tile1.png"), (TILE_SIZE, TILE_SIZE))
+        watered = load_single(get_path("graphics", "tiles", "seeded_tile2.png"), (TILE_SIZE, TILE_SIZE))
+
+        fallback = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
+        fallback.fill((160, 134, 99, 255))
+
+        return [
+            untilled or fallback.copy(),
+            hoed or fallback.copy(),
+            seeded or fallback.copy(),
+            watered or fallback.copy(),
+            None,  # placeholder for grown plant sprite (loaded per-plant)
+        ]
+
+    def build(self) -> None:
+        for tx, ty in self.PLOT_COORDS:
+            if not self._level._land_at(tx, ty):
+                continue
+            pos = (tx * TILE_SIZE, ty * TILE_SIZE)
+            tile = FarmPlotTile(pos, self._state_surfs, (self._level.all_sprites,))
+            # per-tile plant metadata
+            tile.seed = None
+            tile.plant = None
+            tile.plant_type = None
+            tile.growth_minutes = 0
+            tile.watered = False
+            self._tiles[(tx, ty)] = tile
+
+    def interact(self) -> bool:
+        tile = self._get_target_tile()
+        if tile is None:
+            return False
+
+        active_item = self._level.inventory_bar.get_active_item()
+
+        if tile.state == self.STATE_GROWN:
+            return self._handle_grown_tile(tile)
+
+        if active_item == "Hoe" and tile.state == self.STATE_UNTILLED:
+            tile.set_state(self.STATE_HOED)
+            return True
+
+        active_seed = None
+        if active_item is not None:
+            active_seed = self._level.inventory.get_item(active_item)
+
+        if tile.state == self.STATE_HOED:
+            if isinstance(active_seed, Seed):
+                self._level.inventory.remove_item(active_seed)
+                tile.seed = active_seed
+                tile.plant_type = self._seed_name_to_type(active_seed.name)
+                tile.growth_minutes = 0
+                tile.watered = False
+                tile.plant = None
+                tile.set_state(self.STATE_PLANTED)
+                return True
+            if active_item and active_item.startswith("Biji ") and self._level.inventory.get(active_item, 0) > 0:
+                # plant seed and record type for legacy string seed names
+                plant_type = self._seed_name_to_type(active_item)
+                self._level.inventory.remove_item(active_item)
+                tile.seed = None
+                tile.plant_type = plant_type
+                tile.growth_minutes = 0
+                tile.watered = False
+                tile.plant = None
+                tile.set_state(self.STATE_PLANTED)
+                return True
+            return False
+
+        if active_item in ("Air", "Watering Can") and tile.state == self.STATE_PLANTED:
+            if active_item == "Air":
+                if self._level.inventory.get("Air", 0) <= 0:
+                    return False
+                self._level.inventory.remove_item("Air")
+            tile.watered = True
+            tile.growth_minutes = 0
+            tile.set_state(self.STATE_WATERED)
+            return True
+
+        return False
+
+    def _get_target_tile(self) -> FarmPlotTile | None:
+        player = self._level.player
+        directions = {
+            "left": (-TILE_SIZE, 0),
+            "right": (TILE_SIZE, 0),
+            "up": (0, -TILE_SIZE),
+            "down": (0, TILE_SIZE),
+        }
+        dx, dy = directions.get(player.facing, (0, 0))
+        tx = (player.hitbox.centerx + dx) // TILE_SIZE
+        ty = (player.hitbox.centery + dy) // TILE_SIZE
+        if (tx, ty) in self._tiles:
+            return self._tiles[(tx, ty)]
+
+        tx = player.hitbox.centerx // TILE_SIZE
+        ty = player.hitbox.centery // TILE_SIZE
+        return self._tiles.get((tx, ty))
+
+
+    def reset(self) -> None:
+        for tile in self._tiles.values():
+            tile.set_state(self.STATE_UNTILLED)
+            tile.seed = None
+            tile.plant = None
+            tile.plant_type = None
+            tile.growth_minutes = 0
+            tile.watered = False
+
+    def get_plot_states(self) -> dict[tuple[int, int], int]:
+        return {coord: tile.state for coord, tile in self._tiles.items()}
+
+    def is_plot_tile(self, tx: int, ty: int) -> bool:
+        return (tx, ty) in self._tiles
+
+    def get_plot_tile(self, tx: int, ty: int) -> FarmPlotTile | None:
+        return self._tiles.get((tx, ty))
+
+    def has_active_plot(self) -> bool:
+        return bool(self._tiles)
+
+
+    def is_ready_to_plant(self, tx: int, ty: int) -> bool:
+        tile = self._tiles.get((tx, ty))
+        return bool(tile and tile.state == self.STATE_HOED)
+
+    def is_watered(self, tx: int, ty: int) -> bool:
+        tile = self._tiles.get((tx, ty))
+        return bool(tile and tile.state == self.STATE_WATERED)
+
+
+    def __contains__(self, key: tuple[int, int]) -> bool:
+        return key in self._tiles
+
+    def __getitem__(self, key: tuple[int, int]) -> FarmPlotTile | None:
+        return self._tiles.get(key)
+
+    def __iter__(self):
+        return iter(self._tiles.items())
+
+    def _seed_name_to_type(self, item_name: str) -> str:
+        name = item_name.lower()
+        if "kacang" in name or "pea" in name or "polong" in name:
+            return "peashooter"
+        if "jamur" in name or "mushroom" in name:
+            return "mushroom"
+        if "matahari" in name or "bunga" in name or "sunflower" in name:
+            return "sunflower"
+        if "walnut" in name or "kenari" in name or "kentang" in name:
+            return "walnut"
+        # fallback: take last word and sanitize
+        parts = item_name.split()
+        return parts[-1].lower()
+
+    def _load_plant_sprite(self, plant_type: str) -> pygame.Surface | None:
+        if not plant_type:
+            return None
+        candidates = [
+            f"{plant_type}.png",
+            f"{plant_type.lower()}.png",
+            f"{plant_type.capitalize()}.png",
+            f"{plant_type.upper()}.png",
+        ]
+        for filename in candidates:
+            path = get_path("assets", "images", "plants", filename)
+            surf = load_single(path, (TILE_SIZE, TILE_SIZE))
+            if surf:
+                return surf
+        # additional common name fallback
+        alternative = {
+            "peashooter": "peashooter.png",
+            "mushroom": "jamur.png",
+            "sunflower": "sunflower.png",
+            "walnut": "walnut.png",
+        }.get(plant_type)
+        if alternative:
+            path = get_path("assets", "images", "plants", alternative)
+            return load_single(path, (TILE_SIZE, TILE_SIZE))
+        return None
+
+    def _make_plant(self, plant_type: str, growth_time: int) -> Plant | None:
+        plant_surf = self._load_plant_sprite(plant_type)
+        if not plant_surf:
+            return None
+        return Plant(name=plant_type, image=plant_surf, growth_time=growth_time)
+
+    def update(self, minutes_passed: int) -> None:
+        """Call from Level each time the clock advances. minutes_passed is sum of in-game minutes."""
+        if minutes_passed <= 0:
+            return
+        # decay and growth thresholds (in in-game minutes)
+        decay_threshold = 100  # if not watered within 100 minutes, planted seed dies
+        growth_threshold = 60  # after watering, take 60 minutes to become grown
+
+        for coord, tile in list(self._tiles.items()):
+            if tile.state == self.STATE_PLANTED and not tile.watered:
+                tile.growth_minutes += minutes_passed
+                if tile.growth_minutes >= decay_threshold:
+                    # seed dies, reset tile
+                    tile.seed = None
+                    tile.plant = None
+                    tile.plant_type = None
+                    tile.growth_minutes = 0
+                    tile.watered = False
+                    tile.set_state(self.STATE_UNTILLED)
+            elif tile.state == self.STATE_WATERED and tile.watered:
+                tile.growth_minutes += minutes_passed
+                if tile.growth_minutes >= growth_threshold:
+                    # become grown
+                    tile.set_state(self.STATE_GROWN)
+                    plant = self._make_plant(tile.plant_type, growth_threshold)
+                    if plant:
+                        tile.plant = plant
+                        tile.image = plant.image
+                    else:
+                        plant_surf = self._load_plant_sprite(tile.plant_type)
+                        if plant_surf:
+                            tile.image = plant_surf
+                    tile.growth_minutes = 0
+                    tile.watered = False
+
+    def _handle_grown_tile(self, tile: FarmPlotTile) -> bool:
+        plant_type = tile.plant_type or "tanaman"
+        if plant_type in self._battle_unlocked_types:
+            return False
+        self._battle_unlocked_types.add(plant_type)
+        if hasattr(self._level, "battle_unlock_panel"):
+            self._level.battle_unlock_panel.open(plant_type)
+            return True
+        return False
+
+
+class FarmBuilder(BaseWorldBuilder):
+    """Build the special farm plot under the main house."""
+
+    def build(self) -> None:
+        self._level.farm = FarmPlotManager(self._level)
+        self._level.farm.build()
+
+    def _place_plot_tile(self, tx: int, ty: int, surf: pygame.Surface) -> None:
+        pass
+
+    def _plot_tile_rect(self, tx: int, ty: int) -> tuple[int, int, int, int]:
+        return (tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+
+    def _is_plot_tile(self, tx: int, ty: int) -> bool:
+        return self._level.farm.is_plot_tile(tx, ty)
+
+    def _plot_state(self, tx: int, ty: int) -> int:
+        tile = self._level.farm.get_plot_tile(tx, ty)
+        return tile.state if tile else self._level.farm.STATE_UNTILLED
+
+    def _tile_state_name(self, state: int) -> str:
+        return ["untilled", "hoed", "planted", "watered", "grown"][state]
+
+
+    def _plot_coords(self) -> list[tuple[int, int]]:
+        return FarmPlotManager.PLOT_COORDS
+
+
+    def _plot_positions(self) -> list[tuple[int, int]]:
+        return [(tx * TILE_SIZE, ty * TILE_SIZE) for tx, ty in self._plot_coords()]
+
+
+    def _plot_surf_for_state(self, state: int) -> pygame.Surface | None:
+        return self._level.farm._state_surfs[state] if self._level.farm else None
+
+
+    def _plot_state_from_item(self, item_name: str) -> int | None:
+        if item_name == "Hoe":
+            return self._level.farm.STATE_HOED
+        if item_name and item_name.startswith("Biji "):
+            return self._level.farm.STATE_PLANTED
+        if item_name in ("Air", "Watering Can"):
+            return self._level.farm.STATE_WATERED
+        return None
+
+
+    def _plot_message(self, text: str) -> None:
+        pass
+
+
+    def _plot_tile_index(self, tx: int, ty: int) -> int:
+        return self._plot_coords().index((tx, ty)) if (tx, ty) in self._plot_coords() else -1
+
+    def _draw_plot_grid(self) -> None:
+        pass
+
+    def _show_plot_help(self) -> None:
+        pass
+
+    def _hide_plot_help(self) -> None:
+        pass
+
+    def _clear_plot_tiles(self) -> None:
+        pass
+
+    def _reset_plot(self) -> None:
+        if self._level.farm:
+            self._level.farm.reset()
+
+
+    def _plot_state_from_active_item(self) -> int | None:
+        item = self._level.inventory_bar.get_active_item()
+        return self._plot_state_from_item(item) if item else None
+
+    def _ensure_plot_ready(self) -> bool:
+        return self._level.farm is not None and self._level.farm.has_active_plot()
+
+
+    def _plot_tile_action(self, tx: int, ty: int) -> None:
+        self._level.farm.interact()
+
+    def _plot_tile_cursor(self, tx: int, ty: int) -> None:
+        pass
+
+    def _plot_tile_hover(self, tx: int, ty: int) -> None:
+        pass
+
+    def _plot_tile_marker(self, tx: int, ty: int) -> None:
+        pass
+
+    def _plot_tile_info(self, tx: int, ty: int) -> None:
+        pass
+
+    def _plot_tile_state_description(self, state: int) -> str:
+        return [
+            "Ladang belum dicangkul.",
+            "Ladang siap ditanami.",
+            "Benih sudah ditanam.",
+            "Tanaman sudah disiram.",
+        ][state]
+
+    def _place_plot_helpers(self) -> None:
+        pass
+
+    def _plot_tile_overlay(self) -> None:
+        pass
+
+    def _update_plot(self) -> None:
+        pass
+
+    def _plot_tile_label(self, tx: int, ty: int) -> str:
+        return f"Plot {self._plot_tile_index(tx, ty) + 1}" if self._plot_tile_index(tx, ty) >= 0 else ""
+
+    def _plot_target_description(self) -> str:
+        return "Gunakan Hoe, biji tanaman, dan Air di area ladang ini."
+
+
+    def _plot_help_text(self) -> str:
+        return "Pilih alat/biji di bar inventaris, lalu tekan E di atas salah satu tile." 
+
+    def _plot_tooltip(self) -> None:
+        pass
+
+
+    def _plot_state_text(self, state: int) -> str:
+        return [
+            "Belum dicangkul",
+            "Sudah dicangkul",
+            "Sudah ditanam",
+            "Sudah disiram",
+            "Tanaman dewasa",
+        ][state]
+
+
+    def _plot_state_color(self, state: int) -> tuple[int, int, int]:
+        return [(170, 125, 75), (200, 150, 80), (138, 180, 70), (75, 152, 229), (120, 200, 100)][state]
+
+
+    def _plot_state_icon(self, state: int) -> pygame.Surface | None:
+        return None
+
+    def _plot_state_label(self, state: int) -> str:
+        return ["Belum cangkul", "Dicangkul", "Ditanam", "Disiram", "Dewasa"][state]
+
+    def _plot_selectors(self) -> None:
+        pass
+
+    def _plot_action_text(self, state: int) -> str:
+        return [
+            "Tekan E untuk mencangkul.",
+            "Tekan E sambil memilih biji untuk menanam.",
+            "Tekan E sambil memilih Air untuk menyiram.",
+            "Tanaman siap tumbuh.",
+        ][state]
+
+
+    def _plot_tile_state_name(self, state: int) -> str:
+        return ["untilled", "hoed", "planted", "watered", "grown"][state]
+
+
+    def _plot_is_last(self, tx: int, ty: int) -> bool:
+        return self._plot_tile_index(tx, ty) == len(self.PLOT_COORDS) - 1
+
+
+    def _plot_next(self, tx: int, ty: int) -> tuple[int, int] | None:
+        idx = self._plot_tile_index(tx, ty)
+        if idx < 0 or idx + 1 >= len(self.PLOT_COORDS):
+            return None
+        return self.PLOT_COORDS[idx + 1]
+
+    def _plot_previous(self, tx: int, ty: int) -> tuple[int, int] | None:
+        idx = self._plot_tile_index(tx, ty)
+        if idx <= 0:
+            return None
+        return self.PLOT_COORDS[idx - 1]
+
+
+    def _plot_help(self) -> None:
+        pass
+
+
+    def _plot_hint(self) -> None:
+        pass
+
+
+    def _plot_description(self) -> None:
+        pass
+
+
+    def _plot_target(self) -> None:
+        pass
+
+
 class HouseBuilder(BaseWorldBuilder):
     """Menaruh rumah & sumur portal ke goa."""
 
-    
     HOUSE_DATA = [
         (9,  4,  3, True),
         (28, 5,  1, False),
@@ -179,7 +644,7 @@ class FenceBuilder(BaseWorldBuilder):
         CollideTile(pos, (TILE_SIZE, TILE_SIZE), self._collision_sprites)
 
     def _place_fences(self) -> None:
-        self._fence_rect(10, 26, 24, 8, gate_tiles=[(20,34),(21,34),(34,29),(34,30)])
+        # self._fence_rect(10, 26, 24, 8, gate_tiles=[(20,34),(21,34),(34,29),(34,30)])
         self._fence_rect(36, 22, 11, 6, gate_tiles=[(41,21),(42,21),(47,25)])
         self._fence_rect(55, 28, 12, 6, gate_tiles=[(61,27),(62,27),(67,30),(67,31)])
         self._fence_rect( 7,  6, 16, 8, gate_tiles=[(12,14),(13,14),(14,14)])
@@ -192,10 +657,11 @@ class FenceBuilder(BaseWorldBuilder):
         if not grass_objs:
             return
 
-        for y in range(27, 33):
-            for x in range(11, 33):
-                if x % 2 == 0:
-                    self._place_crop(x, y, grass_objs)
+        # Penempatan crop di area ladang (bukan di pagar) dengan pola tertentu
+        # for y in range(27, 33):
+        #     for x in range(11, 33):
+        #         if x % 2 == 0:
+        #             self._place_crop(x, y, grass_objs)
         for y in range(29, 33):
             for x in range(56, 66):
                 if x % 2 == 0:
@@ -224,7 +690,7 @@ class TreeBuilder(BaseWorldBuilder):
         (12,15),(15,15),(18,15),(30,15),(36,15),
         (13,18),(19,18),(27,18),(35,18),
         (12,22),(20,22),(28,22),
-        (15,25),(20,25),(25,25),(30,25),(47,25),(50,25),
+        (15,15),(20,15),(19,15),(30,15),(47,15),(50,15),
         (14,34),(22,34),(30,34),(54,34),(60,34),(65,33),
         (39,17),(40,20),(37,24),(72,24),(70,28),(68,30),
         (42,32),(46,33),(72,33),(32,22),(24,24),(10,24),
@@ -240,7 +706,7 @@ class TreeBuilder(BaseWorldBuilder):
             self._place_tree(tx, ty, medium=True, occupied=occupied)
         for tx, ty in self.SMALL_POSITIONS:
             self._place_tree(tx, ty, medium=False, occupied=occupied)
-        self._place_extra_trees(occupied)
+        # self._place_extra_trees(occupied)
 
     def _place_tree(self, tx: int, ty: int, medium: bool,
                     occupied: list) -> bool:
@@ -301,7 +767,7 @@ class DetailBuilder(BaseWorldBuilder):
     """Menaruh box, dekor, batu pantai, rumput, dan batu darat."""
 
     
-    BOX_SPOTS   = [(20,9),(24,10),(31,9),(36,9),(50,18),(56,18),(61,18),(66,18),(39,23),(44,23),(18,28),(58,30)]
+    BOX_SPOTS   = [(20,9),(24,10),(31,9),(36,9),(50,18),(56,18),(61,18),(66,18),(39,23),(44,23),(18,22),(58,30)]
     DECOR_SPOTS = [(17,10),(19,11),(30,9),(34,9),(37,10),(43,18),(48,18),(52,18),(58,18),(64,18),(40,24),(42,24),(60,20)]
     SEA_STONES  = [
         (4,8),(5,9),(3,11),(5,13),(4,16),(5,18),(3,21),(4,24),(5,27),(4,31),(6,35),
