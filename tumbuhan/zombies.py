@@ -9,7 +9,7 @@ class Zombie:
         self.pos = [480, (lane*42) + 62]
         self.img = game.assets["zombies"][type]
 
-        self.speed = 0.1
+        self.speed = 0.10
         self.moving = True
 
         self.health = 10
