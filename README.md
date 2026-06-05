@@ -33,6 +33,8 @@ Plant VS Zombie. MC menggunakan tanaman yang didapatkan dari farming
 untuk mode bertempur. MC juga bisa menambang dan mendapatkan item
 secara acak di salahsatu gua.
 </div>
+
+
 ---
 
 ## ᯤ⁹⁹⁹⁺ Anggota Kelompok
@@ -54,7 +56,7 @@ secara acak di salahsatu gua.
 - Menanam tanaman
 - Battle mode
 - Mining
-- Iventory
+- Inventory
   
 ---
 
@@ -82,3 +84,28 @@ secara acak di salahsatu gua.
 ---
 ## ⚔️ Screenshot tampilan program
 
+<h3>☰ Halaman Main Menu</h3> 
+<img width="1283" height="722" alt="WhatsApp Image 2026-06-05 at 07 54 32" src="https://github.com/user-attachments/assets/69daafa9-1942-45d3-876d-66ad9ed11881" />
+<br><br>
+ 
+<h3>ִ ࣪𖤐 Halaman Tutorial</h3>
+<img width="1283" height="722" alt="WhatsApp Image 2026-06-05 at 07 26 14" src="https://github.com/user-attachments/assets/0d450e69-994b-4c9d-8166-1fd8db86e518" />
+<br><br>
+
+<h3>˚ ༘⋆🤖｡˚Halaman Interaksi Dengan NPC</h3>
+<img width="1283" height="722" alt="belanja di npc" src="https://github.com/user-attachments/assets/a92e99b8-5bca-4322-b579-4c5106cdeb32" />
+<br><br>
+
+<h3>🛒🛍️ Halaman Beli</h3>
+<img width="1283" height="722" alt="penjual biji tanaman" src="https://github.com/user-attachments/assets/79919559-7b03-47b2-845f-25a916fcb842" />
+<br><br>
+
+<h3>💵 Halaman Jual</h3>
+ <img width="1283" height="722" alt="penjual plant" src="https://github.com/user-attachments/assets/d20e8616-71d4-4c48-9df6-c506606c66f2" />
+<br><br>
+
+<h3>🛠️ Halaman Crafting</h3>
+<img width="1283" height="722" alt="penjual craft" src="https://github.com/user-attachments/assets/e206a456-80a0-408d-a9be-593cc27d39dc" />
+<br><br>
+
+<h3>🧰🛠 Halaman Inventory</h3>
