@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="32" height="18" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="2">
+ <tileset firstgid="1" name="cave_floor_01" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_floor_01.png" width="32" height="32"/>
+ </tileset>
+ <tileset firstgid="2" name="cave_floor_02" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_floor_02.png" width="32" height="32"/>
+ </tileset>
+ <tileset firstgid="3" name="cave_floor_03" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_floor_03.png" width="32" height="32"/>
+ </tileset>
+ <tileset firstgid="4" name="cave_floor_04" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_floor_04.png" width="32" height="32"/>
+ </tileset>
+ <tileset firstgid="5" name="cave_wall_01" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_wall_01.png" width="32" height="32"/>
+ </tileset>
+ <tileset firstgid="6" name="cave_wall_02" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_wall_02.png" width="32" height="32"/>
+ </tileset>
+ <tileset firstgid="7" name="cave_wall_03" tilewidth="32" tileheight="32" tilecount="1" columns="1">
+  <image source="../graphics/tiles/cave_wall_03.png" width="32" height="32"/>
+ </tileset>
+ <layer id="1" name="Ground" width="32" height="18">
+  <data encoding="csv">
+5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,
+6,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,7,
+7,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,5,
+5,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,6,
+6,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,7,
+7,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,5,
+5,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,6,
+6,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,7,
+7,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,5,
+5,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,6,
+6,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,7,
+7,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,5,
+5,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,6,
+6,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,7,
+7,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,5,
+5,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,6,
+6,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1,4,3,7,
+7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5,6,7,5
+</data>
+ </layer>
+ <objectgroup id="2" name="Objects">
+  <object id="1" name="door" type="door" x="480" y="6" width="64" height="64"/>
+ </objectgroup>
+</map>
