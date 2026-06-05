@@ -1,6 +1,7 @@
 from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
+from settings import *
 
 import pygame
 
@@ -866,20 +867,20 @@ class MarketBuilder(BaseWorldBuilder):
             "fallback": (91, 150, 72),
             "type": "shop",
             "buy_items": [
-                {"name": "Biji Bunga Matahari", "buy_price": 15, "image": "assets/items/seeds/sunflower_seed.png"},
-                {"name": "Biji Kentang", "buy_price": 12, "image": "assets/items/seeds/potato_seed.png"},
-                {"name": "Biji Kacang Polong", "buy_price": 10, "image": "assets/items/seeds/pea_seed.png"},
-                {"name": "Rumput", "buy_price": 2, "image": "assets/items/materials/grass.png"},
-                {"name": "Kayu", "buy_price": 4, "image": "assets/items/materials/wood.png"},
-                {"name": "Batu", "buy_price": 3, "image": "assets/items/materials/stone.png"},
+                {"name": "Biji Bunga Matahari", "buy_price": 15, "image": "assets/images/items/sunflower_seed.png"},
+                {"name": "Biji Kentang", "buy_price": 12, "image": "assets/images/items/potato_seed.png"},
+                {"name": "Biji Kacang Polong", "buy_price": 10, "image": "assets/images/items/pea_seed.png"},
+                {"name": "Rumput", "buy_price": 2, "image": "assets/images/items/grass.png"},
+                {"name": "Kayu", "buy_price": 4, "image": "assets/images/items/wood.png"},
+                {"name": "Batu", "buy_price": 3, "image": "assets/images/items/stone.png"},
             ],
             "items": [
-                {"name":"Biji Bunga Matahari","price":30,"desc":"Biji bunga matahari yang indah.","stock":10, "image": "assets/items/seeds/sunflower_seed.png"},
-                {"name":"Biji Kentang","price":25,"desc":"Biji tanaman kentang","stock":8, "image": "assets/items/seeds/potato_seed.png"},
-                {"name":"Biji Kacang Polong","price":20,"desc":"Biji tanaman kacang polong","stock":8, "image": "assets/items/seeds/pea_seed.png"},
-                {"name":"Rumput","price":5,"desc":"Rumput segar","stock":20, "image": "assets/items/materials/grass.png"},
-                {"name":"Kayu","price":8,"desc":"Kayu berkualitas","stock":15, "image": "assets/items/materials/wood.png"},
-                {"name":"Batu","price":6,"desc":"Batu alam","stock":15, "image": "assets/items/materials/stone.png"},
+                {"name":"Biji Bunga Matahari","price":30,"desc":"Biji bunga matahari yang indah.","stock":10, "image": "assets/images/items/sunflower_seed.png"},
+                {"name":"Biji Kentang","price":25,"desc":"Biji tanaman kentang","stock":8, "image": "assets/images/items/potato_seed.png"},
+                {"name":"Biji Kacang Polong","price":20,"desc":"Biji tanaman kacang polong","stock":8, "image": "assets/images/items/pea_seed.png"},
+                {"name":"Rumput","price":5,"desc":"Rumput segar","stock":20, "image": "assets/images/items/grass.png"},
+                {"name":"Kayu","price":8,"desc":"Kayu berkualitas","stock":15, "image": "assets/images/items/wood.png"},
+                {"name":"Batu","price":6,"desc":"Batu alam","stock":15, "image": "assets/images/items/stone.png"},
             ],
         },
         {
@@ -889,24 +890,24 @@ class MarketBuilder(BaseWorldBuilder):
             "fallback": (116, 78, 150),
             "type": "shop",
             "buy_items": [
-                {"name": "Biji Jamur", "buy_price": 20, "image": "assets/items/seeds/mushroom_seed.png"},
-                {"name": "Bunga", "buy_price": 6, "image": "assets/items/materials/flower.png"},
-                {"name": "Gandum", "buy_price": 5, "image": "assets/items/materials/wheat.png"},
-                {"name": "Telur", "buy_price": 8, "image": "assets/items/food/egg.png"},
-                {"name": "Air", "buy_price": 1, "image": "assets/items/materials/water.png"},
-                {"name": "Besi", "buy_price": 12, "image": "assets/items/materials/iron.png"},
+                {"name": "Biji Jamur", "buy_price": 20, "image": "assets/images/items/mushroom_seed.png"},
+                {"name": "Bunga", "buy_price": 6, "image": "assets/images/items/flower.png"},
+                {"name": "Gandum", "buy_price": 5, "image": "assets/images/items/wheat.png"},
+                {"name": "Telur", "buy_price": 8, "image": "assets/images/items/egg.png"},
+                {"name": "Air", "buy_price": 1, "image": "assets/images/items/water.png"},
+                {"name": "Besi", "buy_price": 12, "image": "assets/images/items/iron.png"},
             ],
             "items": [
-                {"name":"Biji Jamur","price":40,"desc":"Biji jamur langka untuk kebun.","stock":5, "image": "assets/items/seeds/mushroom_seed.png"},
-                {"name":"Bunga","price":12,"desc":"Bunga wangi untuk crafting.","stock":15, "image": "assets/items/materials/flower.png"},
-                {"name":"Gandum","price":10,"desc":"Gandum untuk membuat roti.","stock":20, "image": "assets/items/materials/wheat.png"},
-                {"name":"Telur","price":15,"desc":"Telur segar untuk memasak.","stock":10, "image": "assets/items/food/egg.png"},
-                {"name":"Air","price":3,"desc":"Air bersih untuk ramuan.","stock":30, "image": "assets/items/materials/water.png"},
-                {"name":"Besi","price":25,"desc":"Logam besi untuk crafting lanjutan.","stock":8, "image": "assets/items/materials/iron.png"},
+                {"name":"Biji Jamur","price":40,"desc":"Biji jamur langka untuk kebun.","stock":5, "image": "assets/images/items/mushroom_seed.png"},
+                {"name":"Bunga","price":12,"desc":"Bunga wangi untuk crafting.","stock":15, "image": "assets/images/items/flower.png"},
+                {"name":"Gandum","price":10,"desc":"Gandum untuk membuat roti.","stock":20, "image": "assets/images/items/wheat.png"},
+                {"name":"Telur","price":15,"desc":"Telur segar untuk memasak.","stock":10, "image": "assets/images/items/egg.png"},
+                {"name":"Air","price":3,"desc":"Air bersih untuk ramuan.","stock":30, "image": "assets/images/items/water.png"},
+                {"name":"Besi","price":25,"desc":"Logam besi untuk crafting lanjutan.","stock":8, "image": "assets/images/items/iron.png"},
             ],
         },
         {
-            "filename": "npc_1_boy_shopkeeper.png",
+            "filename": "npc_4_crafter.png",
             "name": "Pengrajin",
             "center": (60*TILE_SIZE + TILE_SIZE//2, 18*TILE_SIZE + TILE_SIZE//2),
             "fallback": (141, 100, 180),
@@ -914,7 +915,53 @@ class MarketBuilder(BaseWorldBuilder):
             "buy_items": [],
             "items": [],
         },
+        {
+            "filename": "npc_3_quest.png",
+            "name": "Kepala Desa",
+            "center": (SPAWN_X + 100, SPAWN_Y),
+            "fallback": (200, 180, 150),
+            "type": "quest",
+            "items": [],
+            "buy_items": [],
+        },
     ]
+    
+    def _create_shop_item(self, item_data):
+        """Buat item object dari data"""
+        from items.seed_item import SeedItem
+        from items.food_item import FoodItem
+        from items.material_item import MaterialItem
+        
+        name = item_data["name"]
+        price = item_data["price"]
+        stock = item_data.get("stock", 999)
+        image = item_data.get("image")
+        
+        if "Biji" in name:
+            plant_type = name.replace("Biji ", "").lower()
+            return {
+                "name": name,
+                "price": price,
+                "stock": stock,
+                "image": image,
+                "item_obj": SeedItem(name, plant_type, 10, price, price//2, image)
+            }
+        elif name in ["Ramuan", "Roti"]:
+            return {
+                "name": name,
+                "price": price,
+                "stock": stock,
+                "image": image,
+                "item_obj": FoodItem(name, 20, price, price//2, image)
+            }
+        else:
+            return {
+                "name": name,
+                "price": price,
+                "stock": stock,
+                "image": image,
+                "item_obj": MaterialItem(name, price, price//2, image)
+            }
     
     def build(self) -> None:
         """Build market: tenda dan NPC - IMPLEMENTASI ABSTRACT METHOD"""
@@ -937,6 +984,7 @@ class MarketBuilder(BaseWorldBuilder):
     def _place_npcs(self) -> None:
         from npc.shop_npc import ShopNPC
         from npc.crafter_npc import CrafterNPC
+        from npc.quest_npc import QuestNPC
         
         self._level.shop_npcs = []
         
@@ -944,24 +992,64 @@ class MarketBuilder(BaseWorldBuilder):
             image = self._load_npc_image(data["filename"], data["fallback"])
             
             if data["type"] == "shop":
+                
+                from items.seed_item import SeedItem
+                from items.food_item import FoodItem
+                from items.material_item import MaterialItem
+                
+                converted_items = []
+                for item_data in data.get("items", []):
+                    name = item_data["name"]
+                    price = item_data["price"]
+                    image_path = item_data.get("image")
+                    
+                    if "Biji" in name:
+                        plant_type = name.replace("Biji ", "").lower()
+                        plant_type = plant_type.replace("bunga matahari", "sunflower")
+                        item_obj = SeedItem(name, plant_type, 10, price, price // 2, image_path)
+                    elif name in ["Ramuan", "Roti"]:
+                        item_obj = FoodItem(name, 20, price, price // 2, image_path)
+                    else:
+                        item_obj = MaterialItem(name, price, price // 2, image_path)
+                    
+                    converted_items.append({
+                        "name": name,
+                        "price": price,
+                        "desc": item_data.get("desc", ""),
+                        "stock": item_data.get("stock", 999),
+                        "image": image_path,
+                        "item_obj": item_obj
+                    })
+                
+                
                 npc = ShopNPC(
                     data["center"], image,
                     (self._all_sprites, self._collision_sprites),
                     data["name"],
-                    data.get("items", []),
-                    data.get("buy_items", []) 
+                    converted_items,  
+                    data.get("buy_items", [])  
                 )
+                
             elif data["type"] == "crafter":
                 npc = CrafterNPC(
                     data["center"], image,
                     (self._all_sprites, self._collision_sprites),
                     data["name"]
                 )
+            elif data["type"] == "quest":  
+                npc = QuestNPC(
+                    data["center"], image,
+                    (self._all_sprites, self._collision_sprites),
+                    data["name"]
+                )
+                self._level.quest_npc = npc 
             else:
                 continue
             
-            self._level.shop_npcs.append(npc)
-            
+            self._level.shop_npcs.append(npc)  
+            print(f"[DEBUG] Total NPCs placed: {len(self._level.shop_npcs)}")
+            for i, npc in enumerate(self._level.shop_npcs):
+                print(f"[DEBUG] NPC {i}: {npc.name} (type: {getattr(npc, 'type', 'unknown')}) at {npc.rect.center}")          
 
     def _load_npc_image(self, filename: str, fallback_color: tuple) -> pygame.Surface:
         import os

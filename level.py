@@ -19,7 +19,10 @@ from inventory import Inventory
 from world.game_clock import GameClock
 from world.animated_water import AnimatedWater
 from world.weather_manager import WeatherManager
-
+# from inventories.inventory import Inventory
+from items.seed_item import SeedItem
+from items.food_item import FoodItem
+from items.material_item import MaterialItem
 from asset_registry import AssetRegistry
 from world_builders import (
     TileBuilder,
@@ -243,6 +246,10 @@ class Level:
                 if col_size:
                     CollideTile(pos, col_size, self.interior_collision_sprites)
 
+    def draw_quest_dialog(self, surface):
+        if self.quest_npc and self.quest_npc.showing_quest:
+            self.quest_npc.draw(surface, self)
+
     def run(self, dt: float) -> None:
         if self._check_midnight_pvz():
             return
@@ -254,8 +261,6 @@ class Level:
         self.display_surface.fill(COL_BG)
         self._update_time(dt)
         AnimatedWater.step_global()
-        
-        # self.weather_manager.set_weather('rain')
 
         if self.mode == "inside":
             self._run_interior(dt)
@@ -312,11 +317,17 @@ class Level:
                 self._return_from_cave()
             return
 
+
         menu_active = (
             self.shop_panel.is_open
             or self.crafting_panel.is_open
             or self.inventory_menu.is_open
         )
+        if self.quest_npc and self.quest_npc.showing_quest:
+            if self.quest_npc.handle_event(event, self):
+                return
+
+        # menu_active = self.shop_panel.is_open or self.crafting_panel.is_open
         if hasattr(self, "player"):
             self.player.menu_active = menu_active
 
@@ -381,6 +392,7 @@ class Level:
             npc = self._get_nearby_shop_npc()
             if npc:
                 self._open_for_npc(npc)
+                # npc.interact(self)
             elif self.farm and self.farm.interact():
                 pass
             elif self._near_well_gateway():
@@ -507,7 +519,6 @@ class Level:
         self.season_mode = new_mode
         self.clock_ui.season_mode = self.season_mode
 
-        
         if self.season_mode == "snow":
             self.weather_manager.set_weather("snow")
         elif self.season_mode == "autumn":
@@ -663,7 +674,6 @@ class Level:
             self._sync_season_from_month()
         self.clock_ui.season_mode = self.season_mode
 
-        
         if self.month_system.is_rainy_day:
             self.weather_manager.set_weather("rain")
         elif self.season_mode == "snow":
@@ -687,6 +697,7 @@ class Level:
             panel.update(0)
         self.clock_ui.draw(self.display_surface, self.month_system.date_text)
         self.month_ui.draw(self.display_surface, self.month_system.month_name)
+        self.quest_npc.draw(self.display_surface, self)
 
     def _start_music(self) -> None:
         try:

@@ -1,5 +1,5 @@
 
-from .base_npc import BaseNPC
+from base import *
 
 class ShopNPC(BaseNPC):
     
@@ -8,6 +8,9 @@ class ShopNPC(BaseNPC):
         self.shop_items = items 
         self.buy_items = buy_items or []
         self.type = "shop"
+        
+    def move(self):
+        pass
     
     def interact(self, level) -> None:
         level.shop_panel.open(self)

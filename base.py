@@ -10,40 +10,25 @@ if TYPE_CHECKING:
 
 
 class Updatable(ABC):
-    """Mixin untuk objek yang bisa di-update setiap frame."""
 
     @abstractmethod
     def update(self, dt: float) -> None: ...
 
 
 class Drawable(ABC):
-    """Mixin untuk objek yang bisa digambar ke surface."""
 
     @abstractmethod
     def draw(self, surface: pygame.Surface) -> None: ...
 
 
 class EventHandler(ABC):
-    """Mixin untuk objek yang memproses pygame.Event."""
 
     @abstractmethod
     def handle_event(self, event: pygame.Event) -> bool:
-        """
-        Returns:
-            True  → event sudah di-consume, jangan diteruskan.
-            False → event belum ditangani.
-        """
         ...
 
 
 class BaseManager(Updatable, ABC):
-    """
-    Kelas dasar untuk semua game-manager (ShopManager, CraftingManager, dll).
-
-    Sub-class HARUS mengimplementasikan `update(dt)`.
-    Sub-class BOLEH meng-override `setup()` untuk inisialisasi satu kali.
-    """
-
     def __init__(self, level: "Level") -> None:
         self._level = level
 
@@ -90,7 +75,6 @@ class BaseUIPanel(Drawable, EventHandler, ABC):
         border=(119, 74, 34),
         inner=(255, 239, 177),
     ) -> pygame.Surface:
-        """Buat panel surface dengan style farm-game standar."""
         surf = pygame.Surface((w, h), pygame.SRCALPHA)
         surf.fill(fill)
         pygame.draw.rect(surf, border, surf.get_rect(), 4, border_radius=14)
@@ -114,7 +98,6 @@ class BaseWorldBuilder(ABC):
 
     @abstractmethod
     def build(self) -> None:
-        """Letakkan semua objek ke sprite group."""
         ...
 
     @property
@@ -142,27 +125,6 @@ class BaseWorldBuilder(ABC):
         return normal
 
 
-class BaseNPC(pygame.sprite.Sprite, ABC):
-    """Abstract base class untuk semua NPC"""
-
-    def __init__(self, center_pos, image, groups, name):
-        super().__init__(*groups)
-        self.image = image
-        self.rect = self.image.get_rect(center=center_pos)
-        self.z = LAYERS["player"]
-        self.name = name
-        self.hitbox = self.rect.inflate(-16, -12)
-        self.hitbox.height = max(14, self.hitbox.height // 2)
-        self.hitbox.bottom = self.rect.bottom
-        self.interact_rect = self.rect.inflate(76, 60)
-
-    @abstractmethod
-    def interact(self, level) -> None:
-        pass
-
-    def update(self, dt):
-        pass
-
 
 class BaseWeatherEffect(ABC):
 
@@ -176,14 +138,50 @@ class BaseWeatherEffect(ABC):
         pass
 
     def update(self, dt: float) -> None:
-        """Update efek cuaca (default panggil draw untuk kompatibilitas)"""
         if self.active:
             self.draw(dt)
 
     def set_active(self, active: bool) -> None:
-        """Aktifkan/nonaktifkan efek"""
         self.active = active
 
     def draw_darkness(self, alpha: int) -> None:
-        """Draw darkness overlay (khusus untuk WeatherOverlay)"""
+        pass
+
+
+class Character(ABC):    
+    def __init__(self, name: str):
+        self.name = name
+    
+    @abstractmethod
+    def move(self):
+        """Cara karakter bergerak"""
+        pass
+    
+    @abstractmethod
+    def interact(self, target):
+        """Interaksi dengan objek lain"""
+        pass
+    
+    
+
+class BaseNPC(pygame.sprite.Sprite, Character, ABC):
+    """Abstract base class untuk semua NPC"""
+    
+    def __init__(self, center_pos, image, groups, name):
+        pygame.sprite.Sprite.__init__(self, *groups)
+        Character.__init__(self, name)
+        
+        self.image = image
+        self.rect = self.image.get_rect(center=center_pos)
+        self.z = LAYERS['player']
+        self.hitbox = self.rect.inflate(-16, -12)
+        self.hitbox.height = max(14, self.hitbox.height // 2)
+        self.hitbox.bottom = self.rect.bottom
+        self.interact_rect = self.rect.inflate(76, 60)
+    
+    @abstractmethod
+    def interact(self, level) -> None:
+        pass
+    
+    def update(self, dt):
         pass

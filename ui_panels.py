@@ -3,11 +3,12 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING
 
 import pygame
-
+import os
 from base import BaseUIPanel
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from seed import Seed
 from support import get_path, load_single
+from items.material_item import MaterialItem
 
 if TYPE_CHECKING:
     from level import Level
@@ -367,7 +368,6 @@ class CraftingPanel(BaseUIPanel):
 
 
 class InventoryBar(BaseUIPanel):
-    """Bar inventaris — selalu visible, bukan modal. Tidak ada open/close."""
 
     _SLOTS = 10
     _SLOT_SIZE = 42
@@ -431,6 +431,7 @@ class InventoryBar(BaseUIPanel):
         )
 
         font = self._font_small
+        icon_size = 28
 
         for i in range(self._SLOTS):
             sx = pad + i * (ss + gs)
@@ -456,9 +457,8 @@ class InventoryBar(BaseUIPanel):
                 short = item_name[:4]
                 nt = font.render(short, True, (60, 39, 24))
                 ct = font.render(str(count), True, (60, 39, 24))
-                panel.blit(nt, (sx + (ss - nt.get_width()) // 2, sy + 7))
                 panel.blit(
-                    ct, (sx + ss - ct.get_width() - 6, sy + ss - ct.get_height() - 3)
+                    ct, (sx + ss - ct.get_width() - 4, sy + ss - ct.get_height() - 2)
                 )
 
         # draw tool box to the left of the inventory bar
@@ -490,6 +490,52 @@ class InventoryBar(BaseUIPanel):
         pygame.draw.rect(cbg, (225, 188, 104), cbg.get_rect(), 2, border_radius=8)
         cbg.blit(coin_txt, (9, 6))
         surface.blit(cbg, (x + fw + 12, y + 8))
+
+        coin_txt = font.render(f"Koin: {self._level.money}", True, (255, 239, 177))
+        cbg = pygame.Surface(
+            (coin_txt.get_width() + 18, coin_txt.get_height() + 12), pygame.SRCALPHA
+        )
+        cbg.fill((78, 43, 20, 218))
+        pygame.draw.rect(cbg, (225, 188, 104), cbg.get_rect(), 2, border_radius=8)
+        cbg.blit(coin_txt, (9, 6))
+        surface.blit(cbg, (x + fw + 12, y + 8))
+
+    def _get_item_image(self, item_name: str) -> str:
+        """Dapatkan path gambar berdasarkan nama item"""
+
+        item_images = {
+            "Biji Bunga Matahari": "assets/images/items/sunflower_seed.png",
+            "Biji Kentang": "assets/images/items/potato_seed.png",
+            "Biji Kacang Polong": "assets/images/items/pea_seed.png",
+            "Rumput": "assets/images/items/grass.png",
+            "Kayu": "assets/images/items/wood.png",
+            "Batu": "assets/images/items/stone.png",
+            "Biji Jamur": "assets/images/items/mushroom_seed.png",
+            "Bunga": "assets/images/items/flower.png",
+            "Gandum": "assets/images/items/wheat.png",
+            "Telur": "assets/images/items/egg.png",
+            "Air": "assets/images/items/water.png",
+            "Besi": "assets/images/items/iron.png",
+            "Ramuan": "assets/images/items/water.png",
+            "Roti": "assets/images/items/bread.png",
+            "Pedang Kayu": "assets/images/items/wooden_sword.png",
+            "Beliung": "assets/images/items/pickaxe.png",
+            "Obat Herbal": "assets/images/items/herbal_medicine.png",
+            "Pancing": "assets/images/items/fishing_rod.png",
+        }
+        return item_images.get(item_name, None)
+
+    def _load_item_image(self, image_path, size):
+        import os
+
+        try:
+            if os.path.exists(image_path):
+                img = pygame.image.load(image_path).convert_alpha()
+                return pygame.transform.scale(img, size)
+            else:
+                return print(f"Image not found: {image_path}")
+        except Exception as e:
+            return print(f"Error loading image {image_path}: {e}")
 
     def update(self, dt: float) -> None:
         pass
@@ -837,7 +883,7 @@ class ShopPanel(BaseUIPanel):
         self.selected_index = 0
         self.scroll_offset = 0
         self.mode = "buy"
-        self.message = "Pilih item yang ingin dibeli (Tab untuk ganti mode)"
+        self.message = ""
         self.message_timer = 2.0
 
     def close(self) -> None:
@@ -896,7 +942,7 @@ class ShopPanel(BaseUIPanel):
                 self.mode = "sell"
                 self.selected_index = 0
                 self.scroll_offset = 0
-                self._show_msg("Mode JUAL - Pilih item dari inventory untuk dijual")
+                self._show_msg("")
             else:
                 self._show_msg("NPC ini tidak membeli item apapun!")
         else:
@@ -950,18 +996,31 @@ class ShopPanel(BaseUIPanel):
 
         items = self._get_current_items()
         item_y_start = 90
+        icon_size = 40
+
         for i in range(self._VISIBLE):
             idx = self.scroll_offset + i
             if idx >= len(items):
                 break
 
             item = items[idx]
-            row_y = item_y_start + i * 70
-            row_rect = pygame.Rect(24, row_y, w - 48, 60)
+            row_y = item_y_start + i * 75
+            row_rect = pygame.Rect(24, row_y, w - 48, 70)
 
             bg = (255, 233, 173) if idx == self.selected_index else (245, 220, 160)
             pygame.draw.rect(panel, bg, row_rect, border_radius=8)
             pygame.draw.rect(panel, (154, 96, 44), row_rect, 2, border_radius=8)
+
+            image_path = item.get("image")
+            if image_path:
+                icon = self._load_item_image(image_path, (icon_size, icon_size))
+                if icon:
+                    panel.blit(icon, (row_rect.x + 8, row_rect.y + 15))
+                    text_x = row_rect.x + icon_size + 16
+                else:
+                    text_x = row_rect.x + 12
+            else:
+                text_x = row_rect.x + 12
 
             if self.mode == "buy":
                 name_text = item["name"]
@@ -977,26 +1036,26 @@ class ShopPanel(BaseUIPanel):
 
             panel.blit(
                 self._font_small.render(name_text, True, (56, 34, 18)),
-                (row_rect.x + 12, row_rect.y + 6),
+                (text_x, row_rect.y + 8),
             )
             panel.blit(
                 self._font_small.render(desc_text, True, (91, 66, 43)),
-                (row_rect.x + 12, row_rect.y + 28),
+                (text_x, row_rect.y + 30),
             )
 
             price_color = (86, 51, 23) if self.mode == "buy" else (36, 92, 35)
             price_render = self._font_small.render(price_text, True, price_color)
             panel.blit(
                 price_render,
-                (row_rect.right - price_render.get_width() - 12, row_rect.y + 38),
+                (row_rect.right - price_render.get_width() - 12, row_rect.y + 50),
             )
 
             stock_render = self._font_small.render(stock_text, True, (100, 70, 40))
-            panel.blit(stock_render, (row_rect.x + 12, row_rect.y + 46))
+            panel.blit(stock_render, (text_x, row_rect.y + 52))
 
         if items and 0 <= self.selected_index < len(items):
             sel = items[self.selected_index]
-            info_y = item_y_start + self._VISIBLE * 70 + 10
+            info_y = item_y_start + self._VISIBLE * 75 + 10
             ir = pygame.Rect(24, info_y, w - 48, 70)
             pygame.draw.rect(panel, (255, 233, 173), ir, border_radius=8)
             pygame.draw.rect(panel, (154, 96, 44), ir, 2, border_radius=8)
@@ -1047,29 +1106,131 @@ class ShopPanel(BaseUIPanel):
 
         surface.blit(panel, (x, y))
 
+    def _load_item_image(self, image_path, size):
+
+        if os.path.exists(image_path):
+            img = pygame.image.load(image_path).convert_alpha()
+            return pygame.transform.scale(img, size)
+        else:
+            name = os.path.splitext(os.path.basename(image_path))[0].lower()
+            return self._level.item_image_cache.get(name)
+
+    def _create_item_object_from_data(self, item_data: dict):
+        """Buat Item object dari data dictionary"""
+        from items.seed_item import SeedItem
+        from items.food_item import FoodItem
+        from items.material_item import MaterialItem
+        from items.weapon import Weapon
+
+        name = item_data["name"]
+        price = item_data["price"]
+        image = item_data.get("image")
+
+        if "Biji" in name:
+            plant_type = name.replace("Biji ", "").lower()
+            plant_type = plant_type.replace("bunga matahari", "sunflower")
+            plant_type = plant_type.replace("kacang polong", "pea")
+            return SeedItem(name, plant_type, 10, price, price // 2, image)
+        elif name in ["Ramuan", "Roti"]:
+            return FoodItem(name, 20, price, price // 2, image)
+        elif name == "Pedang Kayu":
+            return Weapon(name, damage=15, durability=50, icon_path=image)
+        elif name == "Beliung":
+            from items.tool import Tool
+
+            return Tool(name, "Alat untuk menambang", 100, icon_path=image)
+        else:
+            return MaterialItem(name, price, price // 2, image)
+
     def _buy(self, index: int) -> None:
         """Beli item dari NPC"""
         npc = self.active_npc
         if not npc or not (0 <= index < len(npc.shop_items)):
             return
-        item = npc.shop_items[index]
+        item_data = npc.shop_items[index]
 
-        if item.get("stock", 1) <= 0:
-            self._show_msg(f"{item['name']} sedang habis!")
-            return
-        if self._level.money < item["price"]:
-            self._show_msg(f"Koin tidak cukup untuk membeli {item['name']}.")
+        if item_data.get("stock", 1) <= 0:
+            self._show_msg(f"{item_data['name']} sedang habis!")
             return
 
-        self._level.money -= item["price"]
-        self._level.inventory[item["name"]] = (
-            self._level.inventory.get(item["name"], 0) + 1
-        )
+        if self._level.money < item_data["price"]:
+            self._show_msg(f"Koin tidak cukup untuk membeli {item_data['name']}.")
+            return
 
-        if "stock" in item:
-            item["stock"] -= 1
+        self._level.money -= item_data["price"]
 
-        self._show_msg(f"{item['name']} berhasil dibeli!")
+        item_obj = self._create_item_object_from_data(item_data)
+        if item_obj:
+            self._level.inventory.add_item(item_obj)
+        else:
+
+            fallback_item = MaterialItem(
+                item_data["name"],
+                item_data["price"],
+                item_data["price"] // 2,
+                item_data.get("image"),
+            )
+            self._level.inventory.add_item(fallback_item)
+
+        if "stock" in item_data:
+            item_data["stock"] -= 1
+
+        self._show_msg(f" {item_data['name']} berhasil dibeli!")
+
+    def _create_item_object(self, item_name: str):
+        """Buat object Item berdasarkan nama item hasil crafting"""
+        from items.weapon import Weapon
+        from items.food_item import FoodItem
+        from items.material_item import MaterialItem
+        from items.tool import Tool
+
+        if item_name == "Pedang Kayu":
+            return Weapon(
+                "Pedang Kayu",
+                damage=15,
+                durability=50,
+                icon_path="assets/images/items/wooden_sword.png",
+            )
+        elif item_name == "Beliung":
+            return Tool(
+                "Beliung",
+                "Alat untuk menambang",
+                100,
+                icon_path="assets/images/items/pickaxe.png",
+            )
+        elif item_name == "Ramuan":
+            return FoodItem(
+                "Ramuan",
+                energy_restore=30,
+                buy_price=20,
+                sell_price=10,
+                icon_path="assets/images/items/water.png",
+            )
+        elif item_name == "Roti":
+            return FoodItem(
+                "Roti",
+                energy_restore=20,
+                buy_price=15,
+                sell_price=8,
+                icon_path="assets/images/items/bread.png",
+            )
+        elif item_name == "Obat Herbal":
+            return FoodItem(
+                "Obat Herbal",
+                energy_restore=50,
+                buy_price=30,
+                sell_price=15,
+                icon_path="assets/images/items/herbal_medicine.png",
+            )
+        elif item_name == "Pancing":
+            return Tool(
+                "Pancing",
+                "Alat untuk memancing",
+                60,
+                icon_path="assets/images/items/fishing_rod.png",
+            )
+        else:
+            return MaterialItem(item_name, 0, 0, None)
 
     def _sell(self, index: int) -> None:
         """Jual item ke NPC"""
@@ -1115,7 +1276,7 @@ class CraftingPanel(BaseUIPanel):
         self.message = ""
         self.message_timer = 0.0
         self._VISIBLE = 5
-        self._W, self._H = 620, 570
+        self._W, self._H = 620, 620
 
     def open(self, npc) -> None:
         """Buka crafting panel"""
@@ -1123,7 +1284,7 @@ class CraftingPanel(BaseUIPanel):
         self.active_npc = npc
         self.selected_index = 0
         self.scroll_offset = 0
-        self.message = "Pilih item yang ingin dibuat"
+        self.message = ""
         self.message_timer = 2.0
 
     def close(self) -> None:
@@ -1167,7 +1328,6 @@ class CraftingPanel(BaseUIPanel):
         return True
 
     def draw(self, surface: pygame.Surface) -> None:
-        """Draw crafting panel"""
         if not self._open or not self.active_npc:
             return
 
@@ -1194,7 +1354,6 @@ class CraftingPanel(BaseUIPanel):
             item = items[idx]
             recipe = self._level.crafting.recipes[item]
             row_y = item_y_start + i * 60
-
             bg = (255, 233, 173) if idx == self.selected_index else (245, 220, 160)
             rr = pygame.Rect(24, row_y, w - 48, 54)
             pygame.draw.rect(panel, bg, rr, border_radius=8)
@@ -1232,11 +1391,17 @@ class CraftingPanel(BaseUIPanel):
 
         panel.blit(
             self._font_small.render(
-                "Pilih/Down : Pilih  |  ENTER : Craft  |  E/Q : Tutup",
-                True,
-                (78, 48, 23),
+                "Up/Down : Pilih  |  ENTER : Craft  |  E/Q : Tutup", True, (78, 48, 23)
             ),
             (24, h - 62),
+        )
+        panel.blit(
+            self._font_small.render(
+                "Tips: Kumpulkan bahan dari alam untuk membuat item baru!",
+                True,
+                (100, 70, 40),
+            ),
+            (24, h - 38),
         )
 
         if self.message and self.message_timer > 0:
@@ -1246,12 +1411,10 @@ class CraftingPanel(BaseUIPanel):
         surface.blit(panel, (x, y))
 
     def update(self, dt: float) -> None:
-        """Update timer message"""
         if self.message_timer > 0:
             self.message_timer = max(0.0, self.message_timer - dt)
 
     def _craft(self, item_name: str) -> None:
-        """Craft item"""
         success, msg = self._level.crafting.craft(self._level.inventory, item_name)
         self.message = msg
         self.message_timer = 2.0
@@ -1323,14 +1486,14 @@ class QuestPanel(BaseUIPanel):
         total = self._level.quest_manager.get_quest_count()
         completed = self._level.quest_manager.get_completed_count()
 
-        title = font_big.render(f"📜 TUTORIAL QUEST", True, (68, 39, 19))
+        title = font_big.render(f"TUTORIAL QUEST", True, (68, 39, 19))
         progress_text = font.render(
             f"Progress: {completed}/{total}", True, (100, 70, 40)
         )
         panel.blit(title, (24, 20))
         panel.blit(progress_text, (w - progress_text.get_width() - 24, 26))
 
-        status = "✅ " if is_completed else "📌 "
+        status = "" if is_completed else ""
         name_color = (36, 92, 35) if is_completed else (56, 34, 18)
         quest_name = font_big.render(f"{status}{quest['name']}", True, name_color)
         panel.blit(quest_name, (24, 70))
