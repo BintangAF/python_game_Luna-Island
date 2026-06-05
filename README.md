@@ -74,7 +74,7 @@ secara acak di salahsatu gua.
 ## 👾 Penjelasan implementasi OOP ˖ ݁𖥔 ݁˖
 <div align ="justify">
  <ul>
-<li><b>Encapsulation :</b> : Setiap objek dalam game direpresentasikan sebagai class yang memiliki atribut dan method masing-masing. Contohnya: Player menyimpan data <i>inventory</i>, <i>plant</i> menyimpan informasi tumbuhan tanaman, monster menyimpan atribut <i>damage</i> dan HP, <i>inventory</i> menyimpan kumpulan item yang dimiliki pemain</li>
+<li><b>Encapsulation :</b> Setiap objek dalam game direpresentasikan sebagai class yang memiliki atribut dan method masing-masing. Contohnya: Player menyimpan data <i>inventory</i>, <i>plant</i> menyimpan informasi tumbuhan tanaman, monster menyimpan atribut <i>damage</i> dan HP, <i>inventory</i> menyimpan kumpulan item yang dimiliki pemain</li>
 <li><b>Inheritance :</b> Dalam game ada beberapa class yang mewarisi class lain seperti: Player dan NPC mewarisi <i>Character</i>, <i>sedds</i>, <i>food item</i>, dan <i>tools</i> mewarisi class item, slime dan zommbie mewarisi class monster</li>
 <li><b>Polymorphism :</b> Polymorphism diterapkan melalui pewarisan class. Contohnya: Method use() pada class Item dapat memiliki implementasi berbeda pada <i>Seed</i>, <i>FoodItem</i>, dan <i>Tool.</i> Method attack() pada class Monster dapat dijalankan berbeda oleh Slime maupun Zombie. </li>
 <li><b>Abstraction :</b>  Abstraksi diterapkan dengan memisahkan sistem game menjadi beberapa komponen utama, antara lain: Sistem karakter (Character, Player, NPC), Sistem item (Item, Seed, FoodItem, Tool), Sistem pertanian (Farm, Plant), Sistem pertarungan (Monster, Slime, Zombie),  Sistem <i>world</i> (Map, Cave, DaySystem, WeatherSystem)</li>
