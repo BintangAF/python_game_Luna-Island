@@ -40,6 +40,8 @@ from ui_panels import (
 )
 
 from camera_group import CameraGroup
+
+
 class Level:
 
     def __init__(self, app) -> None:
@@ -67,12 +69,14 @@ class Level:
         self.money = 120
         self.inventory = Inventory(max_slots=20)
         self.inventory.money = 120
-        
+
         wood_item = MaterialItem("Kayu", 8, 4, "assets/images/items/wood.png")
         self.inventory.add_item(wood_item, 5)
-        
+
         stone_item = MaterialItem("Batu", 6, 3, "assets/images/items/stone.png")
-        self.inventory.add_item(stone_item, 3) 
+        self.inventory.add_item(stone_item, 3)
+
+        self.quest_npc = None
         
         self.shop_npcs = []
         self.well_gateway = None
@@ -232,6 +236,10 @@ class Level:
                 if col_size:
                     CollideTile(pos, col_size, self.interior_collision_sprites)
 
+    def draw_quest_dialog(self, surface):
+        if self.quest_npc and self.quest_npc.showing_quest:
+            self.quest_npc.draw(surface, self)
+
     def run(self, dt: float) -> None:
         if self._check_midnight_pvz():
             return
@@ -243,8 +251,6 @@ class Level:
         self.display_surface.fill(COL_BG)
         self._update_time(dt)
         AnimatedWater.step_global()
-        
-        # self.weather_manager.set_weather('rain')
 
         if self.mode == "inside":
             self._run_interior(dt)
@@ -296,6 +302,10 @@ class Level:
                 self._return_from_cave()
             return
 
+        if self.quest_npc and self.quest_npc.showing_quest:
+            if self.quest_npc.handle_event(event, self):
+                return
+
         menu_active = self.shop_panel.is_open or self.crafting_panel.is_open
         if hasattr(self, "player"):
             self.player.menu_active = menu_active
@@ -327,7 +337,7 @@ class Level:
         if self.mode == "outside":
             npc = self._get_nearby_shop_npc()
             if npc:
-                self._open_for_npc(npc)
+                npc.interact(self)
             elif self._near_well_gateway():
                 self._enter_cave()
             elif self.house_door_rect.colliderect(self.player.hitbox):
@@ -429,7 +439,6 @@ class Level:
         self.season_mode = new_mode
         self.clock_ui.season_mode = self.season_mode
 
-        
         if self.season_mode == "snow":
             self.weather_manager.set_weather("snow")
         elif self.season_mode == "autumn":
@@ -580,7 +589,6 @@ class Level:
             self._sync_season_from_month()
         self.clock_ui.season_mode = self.season_mode
 
-        
         if self.month_system.is_rainy_day:
             self.weather_manager.set_weather("rain")
         elif self.season_mode == "snow":
@@ -604,6 +612,7 @@ class Level:
             panel.update(0)
         self.clock_ui.draw(self.display_surface, self.month_system.date_text)
         self.month_ui.draw(self.display_surface, self.month_system.month_name)
+        self.quest_npc.draw(self.display_surface, self)
 
     def _start_music(self) -> None:
         try:

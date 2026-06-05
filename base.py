@@ -125,25 +125,6 @@ class BaseWorldBuilder(ABC):
         return normal
 
 
-class BaseNPC(pygame.sprite.Sprite, ABC):
-    def __init__(self, center_pos, image, groups, name):
-        super().__init__(*groups)
-        self.image = image
-        self.rect = self.image.get_rect(center=center_pos)
-        self.z = LAYERS["player"]
-        self.name = name
-        self.hitbox = self.rect.inflate(-16, -12)
-        self.hitbox.height = max(14, self.hitbox.height // 2)
-        self.hitbox.bottom = self.rect.bottom
-        self.interact_rect = self.rect.inflate(76, 60)
-
-    @abstractmethod
-    def interact(self, level) -> None:
-        pass
-
-    def update(self, dt):
-        pass
-
 
 class BaseWeatherEffect(ABC):
 
@@ -164,4 +145,43 @@ class BaseWeatherEffect(ABC):
         self.active = active
 
     def draw_darkness(self, alpha: int) -> None:
+        pass
+
+
+class Character(ABC):    
+    def __init__(self, name: str):
+        self.name = name
+    
+    @abstractmethod
+    def move(self):
+        """Cara karakter bergerak"""
+        pass
+    
+    @abstractmethod
+    def interact(self, target):
+        """Interaksi dengan objek lain"""
+        pass
+    
+    
+
+class BaseNPC(pygame.sprite.Sprite, Character, ABC):
+    """Abstract base class untuk semua NPC"""
+    
+    def __init__(self, center_pos, image, groups, name):
+        pygame.sprite.Sprite.__init__(self, *groups)
+        Character.__init__(self, name)
+        
+        self.image = image
+        self.rect = self.image.get_rect(center=center_pos)
+        self.z = LAYERS['player']
+        self.hitbox = self.rect.inflate(-16, -12)
+        self.hitbox.height = max(14, self.hitbox.height // 2)
+        self.hitbox.bottom = self.rect.bottom
+        self.interact_rect = self.rect.inflate(76, 60)
+    
+    @abstractmethod
+    def interact(self, level) -> None:
+        pass
+    
+    def update(self, dt):
         pass

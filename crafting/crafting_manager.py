@@ -7,7 +7,7 @@ class CraftingManager:
             'Ramuan': {
                 'bahan': {'Rumput': 3, 'Bunga': 2},
                 'desc': 'Membuat ramuan dari rumput dan bunga',
-                'image': 'assets/images/items/water.png',  # Gambar hasil
+                'image': 'assets/images/items/potion.png',
             },
             'Roti': {
                 'bahan': {'Gandum': 2, 'Telur': 1},

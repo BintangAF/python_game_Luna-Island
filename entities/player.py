@@ -2,6 +2,7 @@ import os
 import pygame
 from settings import *
 from support import import_folder, get_path
+from base import Character
 
 
 def _crop_alpha_surface(surface: pygame.Surface, padding: int = 2) -> pygame.Surface:
@@ -37,14 +38,15 @@ class Animation:
         return frames_list[int(self.frame)]
 
 
-class Player(pygame.sprite.Sprite):
+class Player(pygame.sprite.Sprite, Character):
    
     CHAR_W = 38
     CHAR_H = 50
 
     def __init__(self, pos, groups, collision_sprites):
-        super().__init__(groups)
-
+        pygame.sprite.Sprite.__init__(self, groups)
+        Character.__init__(self, "Player")
+        
         self.anim_frames = self._load_frames()
         self.animation = Animation(self.anim_frames, 'down_idle', speed=7)
 
@@ -61,7 +63,6 @@ class Player(pygame.sprite.Sprite):
         self.sprinting = False
         self.facing = 'down'
 
-       
         self.hitbox = self.rect.inflate(-14, -18)
         self.collision_sprites = collision_sprites
 
@@ -74,6 +75,42 @@ class Player(pygame.sprite.Sprite):
                 self.run_sound.set_volume(0.22)
         except Exception:
             self.run_sound = None
+            
+            
+    
+    def move(self,dt):
+        if self.direction.length() > 0:
+            self.direction = self.direction.normalize()
+
+        current_speed = self.speed * (self.run_multiplier if self.sprinting else 1)
+        if self.sprinting:
+            self.energy = max(0, self.energy - 9 * dt)
+        else:
+            self.energy = min(self.energy_max, self.energy + 18 * dt)
+
+        self.pos.x += self.direction.x * current_speed * dt
+        self.hitbox.centerx = round(self.pos.x)
+        self.rect.centerx = self.hitbox.centerx
+        self._collide('horizontal')
+
+        self.pos.y += self.direction.y * current_speed * dt
+        self.hitbox.centery = round(self.pos.y)
+        self.rect.centery = self.hitbox.centery
+        self._collide('vertical')
+
+        hw = self.rect.width // 2
+        hh = self.rect.height // 2
+        wx = MAP_W * TILE_SIZE
+        wy = MAP_H * TILE_SIZE
+        self.rect.centerx = max(hw, min(self.rect.centerx, wx - hw))
+        self.rect.centery = max(hh, min(self.rect.centery, wy - hh))
+        self.pos.x = self.rect.centerx
+        self.pos.y = self.rect.centery
+        self.hitbox.center = self.rect.center
+    
+    def interact(self, target):
+        pass
+
 
     def _scale_frame(self, surf: pygame.Surface) -> pygame.Surface:
         return pygame.transform.scale(_crop_alpha_surface(surf), (self.CHAR_W, self.CHAR_H))
@@ -109,7 +146,6 @@ class Player(pygame.sprite.Sprite):
             if d not in frames:
                 frames[d] = [surf.copy() for surf in first_available]
 
-       
         for d in move_dirs:
             frames[f'{d}_idle'] = self._load_idle_pose_from_frame04(d, frames[d])
             if not frames[f'{d}_idle']:
@@ -118,7 +154,6 @@ class Player(pygame.sprite.Sprite):
         return frames
 
     def _input(self):
-        # Jika menu aktif, jangan proses input movement
         if hasattr(self, 'menu_active') and self.menu_active:
             self.direction.x = 0
             self.direction.y = 0
@@ -153,36 +188,7 @@ class Player(pygame.sprite.Sprite):
             self.animation.set_status(self.facing)
         else:
             self.animation.set_status(f'{self.facing}_idle')
-    def _move(self, dt):
-        if self.direction.length() > 0:
-            self.direction = self.direction.normalize()
-
-        current_speed = self.speed * (self.run_multiplier if self.sprinting else 1)
-        if self.sprinting:
-            self.energy = max(0, self.energy - 9 * dt)
-        else:
-            self.energy = min(self.energy_max, self.energy + 18 * dt)
-
-        self.pos.x += self.direction.x * current_speed * dt
-        self.hitbox.centerx = round(self.pos.x)
-        self.rect.centerx = self.hitbox.centerx
-        self._collide('horizontal')
-
-        self.pos.y += self.direction.y * current_speed * dt
-        self.hitbox.centery = round(self.pos.y)
-        self.rect.centery = self.hitbox.centery
-        self._collide('vertical')
-
-        hw = self.rect.width // 2
-        hh = self.rect.height // 2
-        wx = MAP_W * TILE_SIZE
-        wy = MAP_H * TILE_SIZE
-        self.rect.centerx = max(hw, min(self.rect.centerx, wx - hw))
-        self.rect.centery = max(hh, min(self.rect.centery, wy - hh))
-        self.pos.x = self.rect.centerx
-        self.pos.y = self.rect.centery
-        self.hitbox.center = self.rect.center
-
+    
     def _collide(self, axis):
         for sprite in self.collision_sprites.sprites():
             hb = getattr(sprite, 'hitbox', sprite.rect)
@@ -232,7 +238,8 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, dt):
         self._input()
-        self._move(dt)
+        self.move(dt)
         self._update_run_sound()
         anim_dt = dt * (0.6 if 'idle' in self.animation.status else 1.0)
         self.image = self.animation.play(anim_dt)
+    

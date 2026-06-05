@@ -356,7 +356,7 @@ class ShopPanel(BaseUIPanel):
                 self.mode = "sell"
                 self.selected_index = 0
                 self.scroll_offset = 0
-                self._show_msg("Mode JUAL - Pilih item dari inventory untuk dijual")
+                self._show_msg("")
             else:
                 self._show_msg("NPC ini tidak membeli item apapun!")
         else:
@@ -940,14 +940,14 @@ class QuestPanel(BaseUIPanel):
         total = self._level.quest_manager.get_quest_count()
         completed = self._level.quest_manager.get_completed_count()
 
-        title = font_big.render(f"📜 TUTORIAL QUEST", True, (68, 39, 19))
+        title = font_big.render(f"TUTORIAL QUEST", True, (68, 39, 19))
         progress_text = font.render(
             f"Progress: {completed}/{total}", True, (100, 70, 40)
         )
         panel.blit(title, (24, 20))
         panel.blit(progress_text, (w - progress_text.get_width() - 24, 26))
 
-        status = "✅ " if is_completed else "📌 "
+        status = "" if is_completed else ""
         name_color = (36, 92, 35) if is_completed else (56, 34, 18)
         quest_name = font_big.render(f"{status}{quest['name']}", True, name_color)
         panel.blit(quest_name, (24, 70))

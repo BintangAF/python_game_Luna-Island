@@ -1,6 +1,7 @@
 from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
+from settings import *
 
 import pygame
 
@@ -440,13 +441,22 @@ class MarketBuilder(BaseWorldBuilder):
             ],
         },
         {
-            "filename": "npc_1_boy_shopkeeper.png",
+            "filename": "npc_4_crafter.png",
             "name": "Pengrajin",
             "center": (60*TILE_SIZE + TILE_SIZE//2, 18*TILE_SIZE + TILE_SIZE//2),
             "fallback": (141, 100, 180),
             "type": "crafter",
             "buy_items": [],
             "items": [],
+        },
+        {
+            "filename": "npc_3_quest.png",
+            "name": "Kepala Desa",
+            "center": (SPAWN_X + 100, SPAWN_Y),
+            "fallback": (200, 180, 150),
+            "type": "quest",
+            "items": [],
+            "buy_items": [],
         },
     ]
     
@@ -508,6 +518,7 @@ class MarketBuilder(BaseWorldBuilder):
     def _place_npcs(self) -> None:
         from npc.shop_npc import ShopNPC
         from npc.crafter_npc import CrafterNPC
+        from npc.quest_npc import QuestNPC
         
         self._level.shop_npcs = []
         
@@ -559,10 +570,20 @@ class MarketBuilder(BaseWorldBuilder):
                     (self._all_sprites, self._collision_sprites),
                     data["name"]
                 )
+            elif data["type"] == "quest":  
+                npc = QuestNPC(
+                    data["center"], image,
+                    (self._all_sprites, self._collision_sprites),
+                    data["name"]
+                )
+                self._level.quest_npc = npc 
             else:
                 continue
             
-            self._level.shop_npcs.append(npc)            
+            self._level.shop_npcs.append(npc)  
+            print(f"[DEBUG] Total NPCs placed: {len(self._level.shop_npcs)}")
+            for i, npc in enumerate(self._level.shop_npcs):
+                print(f"[DEBUG] NPC {i}: {npc.name} (type: {getattr(npc, 'type', 'unknown')}) at {npc.rect.center}")          
 
     def _load_npc_image(self, filename: str, fallback_color: tuple) -> pygame.Surface:
         import os
