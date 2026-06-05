@@ -109,3 +109,20 @@ secara acak di salahsatu gua.
 <br><br>
 
 <h3>🧰🛠 Halaman Inventory</h3>
+<img width="1602" height="940" alt="inventory" src="https://github.com/user-attachments/assets/01760cfc-9f3f-49c0-aad3-54fc1cb37808" />
+<br><br>
+
+<h3>˚˖𓍢ִ໋🍃˚Halaman Cave.⛰️⋆☁️</h3>
+<img width="1602" height="940" alt="goa" src="https://github.com/user-attachments/assets/51563c8f-b535-468e-8e8e-9c58d7e12b54" />
+<br><br>
+
+<h3>𓃽𓃽𓀚 Halaman Farm</h3>h3>
+ <img width="1602" height="940" alt="farm" src="https://github.com/user-attachments/assets/2bc8aaf6-0379-49ab-bc51-d7c563bc18d3" />
+<br><br>
+
+<h3>🏠︎ Halaman Home</h3>
+<img width="1602" height="940" alt="rumah" src="https://github.com/user-attachments/assets/e252b2a0-75ed-458b-a6fd-525272017c4b" />
+<br><br>
+
+<h3>⚔︎ Halaman Battle</h3>
+<img width="1602" height="940" alt="battle_scene" src="https://github.com/user-attachments/assets/4a49b705-afcb-4c58-8501-c26cdd7293c1" />
